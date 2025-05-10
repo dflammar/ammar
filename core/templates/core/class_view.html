@@ -1,0 +1,43 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ class_group.name }} - Teacher Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1 class="mb-4">{{ class_group.name }}</h1>
+        <p>{{ class_group.description }}</p>
+        
+        <hr class="my-4">
+        
+        {% if videos %}
+            <h2 class="mb-4">Available Videos</h2>
+            <div class="row">
+                {% for video in videos %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card video-card">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ video.title }}</h5>
+                                <p class="card-text">{{ video.description }}</p>
+                                <div class="video-container">
+                                    <video controls>
+                                        <source src="{{ video.video_file.url }}" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                </div>
+                                <div class="mt-2 text-muted">
+                                    <small>Uploaded: {{ video.created_at|date:"F j, Y" }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <p>No videos available for this class yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,3 @@
+@echo off
+echo Opening your project folder...
+explorer "%~dp0"

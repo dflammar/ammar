@@ -1,0 +1,54 @@
+{% extends 'core/base.html' %}
+
+{% block title %}التحقق من رقم الهاتف - منصة التعليم{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="auth-form">
+            <h2 class="text-center mb-4">التحقق من رقم الهاتف</h2>
+            
+            <div class="alert alert-info">
+                <p>تم إرسال رمز التحقق إلى رقم الهاتف: <strong>{{ phone_number }}</strong></p>
+                <p>يرجى إدخال الرمز المكون من 6 أرقام أدناه</p>
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="otp" class="form-label">رمز التحقق</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-key"></i></span>
+                        <input type="text" class="form-control" id="otp" name="otp" placeholder="أدخل رمز التحقق" maxlength="6" required>
+                    </div>
+                    <div class="form-text">رمز التحقق صالح لمدة 10 دقائق فقط</div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">تحقق</button>
+                </div>
+            </form>
+            
+            <div class="mt-3 text-center">
+                <p>لم تستلم الرمز؟ <a href="{% url 'core:register' %}">إعادة الإرسال</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add OTP validation
+    document.getElementById('otp').addEventListener('input', function(e) {
+        // Allow only numbers
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+    
+    // Auto-submit when 6 digits are entered
+    document.getElementById('otp').addEventListener('input', function(e) {
+        if (this.value.length === 6) {
+            document.querySelector('form').submit();
+        }
+    });
+</script>
+{% endblock %}

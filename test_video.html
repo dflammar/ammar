@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار تشغيل الفيديو</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* نسبة 16:9 */
+            margin-bottom: 20px;
+        }
+        .video-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            overflow: hidden;
+        }
+        iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.01);
+            z-index: 5;
+            cursor: pointer;
+        }
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 6;
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>اختبار تشغيل الفيديو</h1>
+        
+        <div class="video-container">
+            <div class="video-wrapper">
+                <!-- فيديو YouTube -->
+                <iframe id="youtube-iframe" 
+                    src="https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=0&color=white&disablekb=1&controls=0&playsinline=1&cc_load_policy=0&enablejsapi=1"
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen>
+                </iframe>
+                
+                <!-- طبقة شفافة للتفاعل مع الفيديو -->
+                <div id="overlay" class="overlay"></div>
+                
+                <!-- زر التشغيل في وسط الفيديو -->
+                <div id="play-button" class="play-button">▶</div>
+            </div>
+        </div>
+        
+        <div style="text-align: center;">
+            <button id="play-video-btn" class="btn btn-primary">
+                <i class="fas fa-play"></i> تشغيل الفيديو
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // تحميل YouTube API
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        
+        var player;
+        
+        // عند تحميل YouTube API
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('youtube-iframe', {
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+        
+        // عند جاهزية المشغل
+        function onPlayerReady(event) {
+            console.log('Player ready');
+            
+            // إضافة وظيفة للنقر على الطبقة الشفافة
+            document.getElementById('overlay').addEventListener('click', function() {
+                // تشغيل الفيديو
+                player.playVideo();
+            });
+            
+            // إضافة وظيفة لزر التشغيل
+            document.getElementById('play-button').addEventListener('click', function() {
+                // تشغيل الفيديو
+                player.playVideo();
+            });
+            
+            // إضافة وظيفة لزر التشغيل تحت الفيديو
+            document.getElementById('play-video-btn').addEventListener('click', function() {
+                // تشغيل الفيديو
+                player.playVideo();
+            });
+        }
+        
+        // عند تغيير حالة المشغل
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                // تحديث زر التشغيل
+                document.getElementById('play-button').innerHTML = '❚❚';
+                document.getElementById('play-video-btn').innerHTML = '<i class="fas fa-pause"></i> إيقاف مؤقت';
+            } else {
+                // تحديث زر التشغيل
+                document.getElementById('play-button').innerHTML = '▶';
+                document.getElementById('play-video-btn').innerHTML = '<i class="fas fa-play"></i> تشغيل الفيديو';
+            }
+        }
+        
+        // منع النقر بزر الماوس الأيمن
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    </script>
+</body>
+</html>

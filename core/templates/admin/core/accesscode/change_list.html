@@ -1,0 +1,147 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block object-tools %}
+<div class="card mb-4" style="max-width: 600px; margin: 0 auto;">
+    <div class="card-header bg-danger text-white">
+        <h3 class="card-title mb-0">إنشاء أكواد وصول جديدة</h3>
+        <p class="mb-0 mt-2">هام جداً: كل فيديو يتطلب كود وصول خاص به</p>
+        <p class="mb-0 mt-1">الأكواد تعمل مدى الحياة - بعد استخدام الكود مرة واحدة يمكن مشاهدة الفيديو في أي وقت</p>
+    </div>
+    <div class="card-body">
+        <form method="post" action="{% url 'admin:generate-access-codes' %}">
+            {% csrf_token %}
+            <div class="form-group mb-3">
+                <label class="form-label fw-bold">اختر نوع الأكواد:</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="code_type" id="video_code" value="video" checked>
+                    <label class="form-check-label fw-bold text-danger" for="video_code">
+                        أكواد لفيديو محدد (تفتح فيديو واحد فقط) - موصى به
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="code_type" id="single_code" value="single">
+                    <label class="form-check-label fw-bold text-primary" for="single_code">
+                        كود فيديو واحد فقط (يفتح فيديو واحد محدد فقط ولا يمكن استخدامه لفيديوهات أخرى)
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="code_type" id="course_code" value="course">
+                    <label class="form-check-label" for="course_code">
+                        أكواد للكورس (تفتح جميع فيديوهات الكورس)
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group mb-3" id="course_select_div">
+                <label for="course" class="form-label">اختر الكورس:</label>
+                <select name="course" id="course" class="form-select">
+                    <option value="">-- اختر الكورس --</option>
+                    {% for course in courses %}
+                        <option value="{{ course.id }}">{{ course.grade.name_ar }} - {{ course.name_ar }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group mb-3" id="video_select_div" style="display: none;">
+                <label for="video" class="form-label">اختر الفيديو:</label>
+                <select name="video" id="video" class="form-select">
+                    <option value="">-- اختر الفيديو --</option>
+                    {% for video in videos %}
+                        <option value="{{ video.id }}">{{ video.lesson.course.grade.name_ar }} - {{ video.lesson.course.name_ar }} - {{ video.title_ar }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="count" class="form-label">عدد الأكواد:</label>
+                <input type="number" name="count" id="count" class="form-control" value="100" min="1" max="1000" required>
+                <small class="form-text text-muted">الحد الأقصى 1000 كود في المرة الواحدة</small>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-key me-2"></i> إنشاء الأكواد
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const courseRadio = document.getElementById('course_code');
+            const videoRadio = document.getElementById('video_code');
+            const singleRadio = document.getElementById('single_code');
+            const courseSelect = document.getElementById('course_select_div');
+            const videoSelect = document.getElementById('video_select_div');
+            const courseDropdown = document.getElementById('course');
+            const videoDropdown = document.getElementById('video');
+
+            // تبديل العرض بناءً على اختيار نوع الكود
+            courseRadio.addEventListener('change', function() {
+                if (this.checked) {
+                    courseSelect.style.display = 'block';
+                    videoSelect.style.display = 'none';
+                    courseDropdown.required = true;
+                    videoDropdown.required = false;
+                    videoDropdown.value = '';
+                }
+            });
+
+            videoRadio.addEventListener('change', function() {
+                if (this.checked) {
+                    courseSelect.style.display = 'none';
+                    videoSelect.style.display = 'block';
+                    courseDropdown.required = false;
+                    videoDropdown.required = true;
+                    courseDropdown.value = '';
+                }
+            });
+
+            singleRadio.addEventListener('change', function() {
+                if (this.checked) {
+                    courseSelect.style.display = 'none';
+                    videoSelect.style.display = 'block';
+                    courseDropdown.required = false;
+                    videoDropdown.required = true;
+                    courseDropdown.value = '';
+                }
+            });
+
+            // تعيين الحالة الافتراضية عند تحميل الصفحة
+            if (videoRadio.checked || singleRadio.checked) {
+                courseSelect.style.display = 'none';
+                videoSelect.style.display = 'block';
+                courseDropdown.required = false;
+                videoDropdown.required = true;
+            } else {
+                courseSelect.style.display = 'block';
+                videoSelect.style.display = 'none';
+                courseDropdown.required = true;
+                videoDropdown.required = false;
+            }
+
+            // التحقق من وجود معرف فيديو في عنوان URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoId = urlParams.get('video');
+            if (videoId) {
+                // تحديد خيار "أكواد لفيديو محدد"
+                videoRadio.checked = true;
+                courseRadio.checked = false;
+                singleRadio.checked = false;
+
+                // إظهار قائمة الفيديوهات وإخفاء قائمة الكورسات
+                courseSelect.style.display = 'none';
+                videoSelect.style.display = 'block';
+                courseDropdown.required = false;
+                videoDropdown.required = true;
+                courseDropdown.value = '';
+
+                // تحديد الفيديو في القائمة المنسدلة
+                videoDropdown.value = videoId;
+            }
+        });
+    </script>
+</div>
+
+{{ block.super }}
+{% endblock %}

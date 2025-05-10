@@ -1,0 +1,61 @@
+{% extends 'core/base.html' %}
+{% load socialaccount %}
+
+{% block title %}تسجيل الدخول - منصة التعليم{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="auth-form bg-white rounded-4 shadow">
+                <div class="text-center mb-4">
+                    <h2 class="fw-bold text-primary">🌟 تسجيل الدخول</h2>
+                    <p class="text-muted">أدخل بيانات الدخول للوصول إلى المحتوى التعليمي الخاص بك</p>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label for="phone_number" class="form-label fw-bold text-primary">رقم الهاتف</label>
+                        <input type="text" class="form-control form-control-lg border-2"
+                               id="phone_number" name="phone_number"
+                               placeholder="أدخل رقم الهاتف" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label fw-bold text-primary">كلمة السر</label>
+                        <input type="password" class="form-control form-control-lg border-2"
+                               id="password" name="password"
+                               placeholder="أدخل كلمة السر" required>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" id="remember_me" name="remember_me">
+                        <label class="form-check-label" for="remember_me">
+                            أوافق على تسجيل الدخول عن طريق الكود
+                        </label>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger btn-lg fw-bold py-3">تسجيل الدخول</button>
+                    </div>
+                </form>
+
+                <div class="text-center mt-4">
+                    <p>لا يوجد لديك حساب؟ <a href="{% url 'core:register' %}" class="text-danger fw-bold">إنشاء حساب الآن!</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add input validation
+    document.getElementById('phone_number').addEventListener('input', function(e) {
+        // Allow numbers only
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+</script>
+{% endblock %}

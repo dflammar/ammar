@@ -1,0 +1,143 @@
+{% extends 'core/base.html' %}
+{% load i18n %}
+
+{% block title %}تقييم {{ teacher.name_ar }} - منصة التعليم{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rating-stars {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: center;
+    }
+    
+    .rating-stars input {
+        display: none;
+    }
+    
+    .rating-stars label {
+        cursor: pointer;
+        font-size: 3rem;
+        color: #ccc;
+        transition: color 0.3s;
+        margin: 0 5px;
+    }
+    
+    .rating-stars label:hover,
+    .rating-stars label:hover ~ label,
+    .rating-stars input:checked ~ label {
+        color: #ffc107;
+    }
+    
+    .rating-stars label:hover:before,
+    .rating-stars label:hover ~ label:before,
+    .rating-stars input:checked ~ label:before {
+        content: '\f005';
+        font-weight: 900;
+    }
+    
+    .rating-stars label:before {
+        content: '\f005';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 400;
+    }
+    
+    .rating-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #3f51b5;
+        text-align: center;
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card hover-card">
+                <div class="card-header gradient-bg text-white text-center py-3">
+                    <h2 class="mb-0">{% if existing_review %}تعديل تقييمك{% else %}تقييم المعلم{% endif %}</h2>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        {% if teacher.photo %}
+                            <img src="{{ teacher.photo.url }}" class="rounded-circle img-thumbnail mb-3" alt="{{ teacher.name_ar }}" style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded-circle mx-auto mb-3" style="width: 120px; height: 120px;">
+                                <i class="fas fa-user-tie fa-4x"></i>
+                            </div>
+                        {% endif %}
+                        <h3>{{ teacher.name_ar }}</h3>
+                        <p class="text-muted">{{ teacher.specialization_ar }}</p>
+                    </div>
+                    
+                    <form method="post" action="{% url 'core:teacher_review' teacher.id %}">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">التقييم</label>
+                            <div class="rating-stars mb-2">
+                                <input type="radio" id="star5" name="rating" value="5" {% if existing_review.rating == 5 %}checked{% endif %} />
+                                <label for="star5" title="5 نجوم"></label>
+                                
+                                <input type="radio" id="star4" name="rating" value="4" {% if existing_review.rating == 4 %}checked{% endif %} />
+                                <label for="star4" title="4 نجوم"></label>
+                                
+                                <input type="radio" id="star3" name="rating" value="3" {% if existing_review.rating == 3 %}checked{% endif %} />
+                                <label for="star3" title="3 نجوم"></label>
+                                
+                                <input type="radio" id="star2" name="rating" value="2" {% if existing_review.rating == 2 %}checked{% endif %} />
+                                <label for="star2" title="2 نجوم"></label>
+                                
+                                <input type="radio" id="star1" name="rating" value="1" {% if existing_review.rating == 1 %}checked{% endif %} />
+                                <label for="star1" title="1 نجمة"></label>
+                            </div>
+                            <div class="rating-value" id="rating-value">
+                                {% if existing_review %}{{ existing_review.rating }}{% else %}0{% endif %} / 5
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="comment" class="form-label fw-bold">تعليقك (اختياري)</label>
+                            <textarea class="form-control" id="comment" name="comment" rows="5" placeholder="اكتب تعليقك هنا...">{% if existing_review %}{{ existing_review.comment }}{% endif %}</textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-2"></i> {% if existing_review %}تحديث التقييم{% else %}إرسال التقييم{% endif %}
+                            </button>
+                            <a href="{% url 'core:teacher_detail' teacher.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-right me-2"></i> العودة للصفحة السابقة
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ratingInputs = document.querySelectorAll('input[name="rating"]');
+        const ratingValue = document.getElementById('rating-value');
+        
+        // Update rating value display when a star is clicked
+        ratingInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                ratingValue.textContent = this.value + ' / 5';
+            });
+        });
+        
+        // Set initial value if there's an existing review
+        const checkedInput = document.querySelector('input[name="rating"]:checked');
+        if (checkedInput) {
+            ratingValue.textContent = checkedInput.value + ' / 5';
+        }
+    });
+</script>
+{% endblock %}

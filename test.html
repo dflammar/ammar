@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار المتصفح</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #3f51b5;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        button {
+            background-color: #3f51b5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #303f9f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>اختبار المتصفح</h1>
+        <p class="success">✓ المتصفح يعمل بشكل صحيح!</p>
+        <p>هذه صفحة اختبار بسيطة للتأكد من أن المتصفح يعمل بشكل صحيح.</p>
+        <p>إذا كنت ترى هذه الصفحة، فهذا يعني أن المتصفح يعمل بشكل صحيح.</p>
+        
+        <h2>المشكلة المحتملة:</h2>
+        <ol style="text-align: right;">
+            <li>قد تكون هناك مشكلة في تثبيت Django</li>
+            <li>قد تكون هناك مشكلة في تكوين المشروع</li>
+            <li>قد تكون هناك مشكلة في الاتصال بالخادم</li>
+            <li>قد تكون هناك مشكلة في جدار الحماية</li>
+        </ol>
+        
+        <button onclick="window.location.reload()">تحديث الصفحة</button>
+    </div>
+</body>
+</html>

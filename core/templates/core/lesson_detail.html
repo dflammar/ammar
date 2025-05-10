@@ -1,0 +1,182 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ lesson.title_ar }} - منصة التعليم{% endblock %}
+
+{% block content %}
+<!-- Course Header -->
+<div class="course-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb bg-transparent mb-4">
+                <li class="breadcrumb-item"><a href="{% url 'core:grades' %}" class="text-white">الصفوف الدراسية</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'core:grade_detail' lesson.course.grade.id %}" class="text-white">{{ lesson.course.grade.name_ar }}</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'core:course_detail' lesson.course.id %}" class="text-white">{{ lesson.course.name_ar }}</a></li>
+                <li class="breadcrumb-item active text-white-50" aria-current="page">{{ lesson.title_ar }}</li>
+            </ol>
+        </nav>
+
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="course-title">{{ lesson.title_ar }}</h1>
+
+                <div class="course-meta">
+                    <div class="course-meta-item">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>{{ lesson.course.grade.name_ar }}</span>
+                    </div>
+                    <div class="course-meta-item">
+                        <i class="fas fa-book"></i>
+                        <span>{{ lesson.course.name_ar }}</span>
+                    </div>
+                    <div class="course-meta-item">
+                        <i class="fas fa-video"></i>
+                        <span>{{ videos|length }} فيديو</span>
+                    </div>
+                </div>
+
+                {% if lesson.description %}
+                    <p class="lead text-white-50">{{ lesson.description }}</p>
+                {% endif %}
+
+                <div class="course-actions">
+                    <a href="{% url 'core:course_detail' lesson.course.id %}" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-right ml-1"></i> العودة إلى {{ lesson.course.name_ar }}
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 d-none d-lg-block">
+                <div class="bg-white rounded-4 shadow p-5 text-center">
+                    <i class="fas fa-book-open fa-5x text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Video Content -->
+<div class="container mt-n5 mb-5">
+    <div class="card shadow-lg border-0 rounded-4">
+        <div class="card-body p-4">
+            <!-- Assignments Section -->
+            {% if assignments %}
+            <div class="assignments-section mb-5">
+                <h2 class="text-center mb-4">الواجبات <span>والامتحانات</span></h2>
+                <div class="row g-4">
+                    {% for assignment in assignments %}
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 shadow-sm hover-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    {% if assignment.assignment_type == 'homework' %}
+                                    <div class="assignment-icon bg-primary">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                    {% elif assignment.assignment_type == 'exam' %}
+                                    <div class="assignment-icon bg-danger">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    {% elif assignment.assignment_type == 'quiz' %}
+                                    <div class="assignment-icon bg-success">
+                                        <i class="fas fa-question"></i>
+                                    </div>
+                                    {% else %}
+                                    <div class="assignment-icon bg-info">
+                                        <i class="fas fa-tasks"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="ms-3">
+                                        <h5 class="card-title mb-0">{{ assignment.title_ar }}</h5>
+                                        <small class="text-muted">{{ assignment.get_assignment_type_display }}</small>
+                                    </div>
+                                </div>
+
+                                {% if assignment.description %}
+                                <p class="card-text">{{ assignment.description|truncatechars:100 }}</p>
+                                {% endif %}
+
+                                {% if assignment.due_date %}
+                                <div class="mb-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar-alt me-1"></i> تاريخ الاستحقاق: {{ assignment.due_date|date:"j F Y, g:i a" }}
+                                    </small>
+                                </div>
+                                {% endif %}
+
+                                <div class="d-flex mt-3">
+                                    {% if assignment.google_sheet_url %}
+                                    <a href="{{ assignment.google_sheet_url }}" target="_blank" class="btn btn-sm btn-outline-primary me-2">
+                                        <i class="fas fa-table me-1"></i> Google Sheets
+                                    </a>
+                                    {% endif %}
+
+                                    {% if assignment.google_form_url %}
+                                    <a href="{{ assignment.google_form_url }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-edit me-1"></i> Google Forms
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="course-content">
+                <h2 class="text-center mb-5">الفيديوهات <span>التعليمية</span></h2>
+
+                {% if videos %}
+                    <div class="row g-4">
+                        {% for video in videos %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card hover-card h-100 border-0">
+                                    <div class="card-body p-0">
+                                        <div class="position-relative">
+                                            {% if video.thumbnail %}
+                                                <img src="{{ video.thumbnail.url }}" class="card-img-top rounded-top" alt="{{ video.title_ar }}">
+                                            {% elif video.video_type == 'youtube' %}
+                                                <img src="https://img.youtube.com/vi/{{ video.youtube_id }}/maxresdefault.jpg" class="card-img-top rounded-top" alt="{{ video.title_ar }}">
+                                            {% else %}
+                                                <div class="bg-primary text-white text-center py-5 rounded-top">
+                                                    <i class="fas fa-video fa-3x"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div class="position-absolute top-0 start-0 bg-primary text-white px-2 py-1 m-2 rounded">
+                                                <i class="fas fa-clock me-1"></i> 15:00
+                                            </div>
+                                            <div class="position-absolute top-50 start-50 translate-middle">
+                                                <div class="play-button">
+                                                    <i class="fas fa-play"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="p-3">
+                                            <h3 class="h5 fw-bold mb-2">{{ video.title_ar }}</h3>
+                                            {% if video.description %}
+                                                <p class="text-muted small mb-3">{{ video.description|truncatechars:80 }}</p>
+                                            {% endif %}
+                                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                                <a href="{% url 'core:video_detail' video.id %}" class="btn btn-primary">
+                                                    <i class="fas fa-play-circle me-1"></i> مشاهدة الفيديو
+                                                </a>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-eye me-1"></i> 100 مشاهدة
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0 text-center">لا توجد فيديوهات متاحة لهذا الدرس حالياً.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

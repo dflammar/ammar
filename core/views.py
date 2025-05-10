@@ -1,0 +1,1608 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib import messages
+from django.http import HttpResponseForbidden, JsonResponse, HttpResponse, Http404
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.conf import settings
+from django.utils.translation import gettext_lazy as _
+from django.db.models import Q, Count, Avg, Sum
+from django.core.mail import send_mail
+from django.core.paginator import Paginator
+import random
+import json
+import logging
+import datetime
+import string
+import os
+
+from .models import (
+    Grade, Course, Lesson, Video, VideoView, AccessCode,
+    Teacher, TeacherReview, PaymentMethod, PaymentPackage,
+    Notification, Student, Assignment, StudentVideoAccess
+)
+from django.contrib.auth.models import User
+from django.db.models import Avg, Count
+
+logger = logging.getLogger(__name__)
+
+def home(request):
+    """Home page view"""
+    if request.user.is_authenticated:
+        return redirect('core:grades')
+    return render(request, 'core/home.html')
+
+def test_view(request):
+    """Test view to check if the server is working"""
+    return HttpResponse("Server is working!")
+
+def register_view(request):
+    """Handle user registration"""
+    if request.user.is_authenticated:
+        return redirect('core:grades')
+
+    # Get all grades for the dropdown
+    grades = Grade.objects.all().order_by('order')
+
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        phone_number = request.POST.get('phone_number')  # Using phone number as username
+        email = request.POST.get('email')
+        grade_id = request.POST.get('grade')
+        password = request.POST.get('password')
+        password_confirm = request.POST.get('password_confirm')
+
+        if not phone_number or not password:
+            messages.error(request, _('رقم الهاتف وكلمة المرور مطلوبان.'))
+            return render(request, 'core/register.html', {'grades': grades})
+
+        if password != password_confirm:
+            messages.error(request, _('كلمات المرور غير متطابقة.'))
+            return render(request, 'core/register.html', {'grades': grades})
+
+        # Check if user already exists
+        if User.objects.filter(username=phone_number).exists():
+            messages.error(request, _('رقم الهاتف مسجل بالفعل.'))
+            return render(request, 'core/register.html', {'grades': grades})
+
+        if email and User.objects.filter(email=email).exists():
+            messages.error(request, _('البريد الإلكتروني مسجل بالفعل.'))
+            return render(request, 'core/register.html', {'grades': grades})
+
+        # Create new user
+        user = User.objects.create_user(
+            username=phone_number,
+            password=password,
+            email=email,
+            first_name=first_name,
+            last_name=last_name
+        )
+
+        # Add user to grade
+        try:
+            if grade_id:
+                grade = Grade.objects.get(id=grade_id)
+                grade.students.add(user)
+
+                # Auto-enroll user in all courses for this grade
+                courses = Course.objects.filter(grade=grade)
+                for course in courses:
+                    # Create a student-course relationship here if you have one
+                    # For now, we're just using the grade relationship
+                    pass
+        except Grade.DoesNotExist:
+            messages.warning(request, _('الصف الدراسي غير موجود.'))
+
+        # Set the backend attribute on the user object
+        user.backend = 'django.contrib.auth.backends.ModelBackend'
+
+        # Log the user in
+        login(request, user)
+
+        messages.success(request, _('تم التسجيل بنجاح! يمكنك الآن الوصول إلى جميع الكورسات المتاحة لصفك الدراسي.'))
+        return redirect('core:grades')
+
+    return render(request, 'core/register.html', {'grades': grades})
+
+def verify_otp_view(request):
+    """Placeholder for OTP verification"""
+    if request.user.is_authenticated:
+        return redirect('core:grades')
+
+    # For now, just redirect to login
+    messages.info(request, _('OTP verification will be implemented later.'))
+    return redirect('core:login')
+
+def login_view(request):
+    """Handle user login"""
+    if request.user.is_authenticated:
+        return redirect('core:grades')
+
+    if request.method == 'POST':
+        username = request.POST.get('phone_number')  # Using phone number as username
+        password = request.POST.get('password')
+
+        if not username or not password:
+            messages.error(request, _('Phone number and password are required.'))
+            return render(request, 'core/login.html')
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            messages.success(request, _('Login successful!'))
+
+            # Redirect to admin panel if staff
+            if user.is_staff:
+                return redirect('admin:index')
+
+            return redirect('core:grades')
+        else:
+            messages.error(request, _('Invalid phone number or password.'))
+
+    return render(request, 'core/login.html')
+
+@login_required
+def logout_view(request):
+    """Handle user logout"""
+    logout(request)
+    messages.success(request, _('You have been logged out.'))
+    return redirect('core:home')
+
+def grades_view(request):
+    """Display all available grades"""
+    # Check if user is guest
+    is_guest = not request.user.is_authenticated
+
+    if is_guest:
+        # For guests, show only a limited set of grades (first grade as demo)
+        grades = Grade.objects.all().order_by('order')[:1]
+
+        # Add a message for guests
+        messages.info(request, _('أنت تتصفح المنصة كزائر. قم بتسجيل الدخول للوصول إلى جميع المحتويات.'))
+    else:
+        # For logged in users, show all grades
+        grades = Grade.objects.all().order_by('order')
+
+    context = {
+        'grades': grades,
+        'is_guest': is_guest
+    }
+    return render(request, 'core/grades.html', context)
+
+def grade_detail_view(request, grade_id):
+    """Display courses for a specific grade"""
+    grade = get_object_or_404(Grade, id=grade_id)
+
+    # Check if user is guest
+    is_guest = not request.user.is_authenticated
+
+    if is_guest:
+        # For guests, show only a limited set of courses (first 2 courses as demo)
+        courses = Course.objects.filter(grade=grade).order_by('order')[:2]
+
+        # Add a message for guests
+        messages.info(request, _('أنت تتصفح المنصة كزائر. قم بتسجيل الدخول للوصول إلى جميع الكورسات.'))
+    else:
+        # For logged in users, show all courses
+        courses = Course.objects.filter(grade=grade).order_by('order')
+
+    context = {
+        'grade': grade,
+        'courses': courses,
+        'is_guest': is_guest
+    }
+    return render(request, 'core/grade_detail.html', context)
+
+def course_list_view(request):
+    """Display all courses"""
+    # Check if user is guest
+    is_guest = not request.user.is_authenticated
+
+    if is_guest:
+        # For guests, show only a limited set of courses (first 2 courses as demo)
+        courses = Course.objects.all().order_by('grade__order', 'order')[:4]
+
+        # Add a message for guests
+        messages.info(request, _('أنت تتصفح المنصة كزائر. قم بتسجيل الدخول للوصول إلى جميع الكورسات.'))
+    else:
+        # For logged in users, show all courses
+        courses = Course.objects.all().order_by('grade__order', 'order')
+
+    context = {
+        'courses': courses,
+        'is_guest': is_guest,
+        'page_title': 'جميع الكورسات'
+    }
+    return render(request, 'core/course_list.html', context)
+
+def course_detail_view(request, course_id):
+    """Display lessons for a specific course"""
+    course = get_object_or_404(Course, id=course_id)
+
+    # Check if user is guest
+    is_guest = not request.user.is_authenticated
+
+    if is_guest:
+        # For guests, show only a limited set of lessons (first 2 lessons as demo)
+        lessons = Lesson.objects.filter(course=course).order_by('order')[:2]
+        assignments = []
+
+        # Add a message for guests
+        messages.info(request, _('أنت تتصفح المنصة كزائر. قم بتسجيل الدخول للوصول إلى جميع الدروس.'))
+    else:
+        # For logged in users, show all lessons
+        lessons = Lesson.objects.filter(course=course).order_by('order')
+
+        # Get assignments for this course
+        assignments = Assignment.objects.filter(course=course).order_by('-created_at')
+
+    context = {
+        'course': course,
+        'lessons': lessons,
+        'assignments': assignments,
+        'is_guest': is_guest
+    }
+    return render(request, 'core/course_detail.html', context)
+
+def lesson_detail_view(request, lesson_id):
+    """Display videos for a specific lesson"""
+    lesson = get_object_or_404(Lesson, id=lesson_id)
+
+    # Check if user is guest
+    is_guest = not request.user.is_authenticated
+
+    if is_guest:
+        # For guests, show only a limited set of videos (first video as demo)
+        videos = Video.objects.filter(lesson=lesson).order_by('order')[:1]
+        assignments = []
+
+        # Add a message for guests
+        messages.info(request, _('أنت تتصفح المنصة كزائر. قم بتسجيل الدخول للوصول إلى جميع الفيديوهات.'))
+    else:
+        # For logged in users, show all videos
+        videos = Video.objects.filter(lesson=lesson).order_by('order')
+
+        # Get assignments for this lesson
+        assignments = Assignment.objects.filter(
+            Q(lesson=lesson) | Q(course=lesson.course, lesson__isnull=True)
+        ).order_by('-created_at')
+
+    context = {
+        'lesson': lesson,
+        'videos': videos,
+        'assignments': assignments,
+        'is_guest': is_guest
+    }
+    return render(request, 'core/lesson_detail.html', context)
+
+def video_detail_view(request, video_id):
+    """Display a specific video with enhanced security and access code protection"""
+    video = get_object_or_404(Video, id=video_id)
+    course = video.lesson.course
+
+    # Check if user is guest
+    is_guest = not request.user.is_authenticated
+
+    # For guests, show a preview message but don't allow video playback
+    if is_guest:
+        messages.warning(request, _('هذا فيديو تجريبي. قم بتسجيل الدخول وإدخال كود الوصول لمشاهدة الفيديو كاملاً.'))
+
+        context = {
+            'video': video,
+            'course': course,
+            'is_guest': is_guest,
+            'secret_code_required': False,
+            'secret_code_valid': False,
+            'access_code_required': False,
+            'access_code_valid': False,
+            'preview_only': True
+        }
+        return render(request, 'core/video_detail.html', context)
+
+    # ======== تبسيط آلية التحقق من الكود بشكل كامل ========
+    # تحقق مباشرة إذا كان الفيديو مفتوحًا بالفعل
+    video_key = f"video_{video_id}_unlocked"
+
+    # للتوافق مع الإصدارات السابقة، تحقق أيضًا من المفاتيح القديمة
+    secret_code_valid = False
+
+    # تحقق أولاً من قاعدة البيانات - هل الطالب لديه وصول مسجل لهذا الفيديو؟
+    try:
+        student = Student.objects.get(user=request.user)
+        # تحقق من وجود سجل وصول للفيديو
+        video_access = StudentVideoAccess.objects.filter(student=student, video=video).first()
+        if video_access:
+            secret_code_valid = True
+            # تحديث عداد المشاهدات
+            video_access.increment_view_count()
+            print(f"[DEBUG] Video access found in database. Access record: {video_access}")
+    except (Student.DoesNotExist, Exception) as e:
+        print(f"[DEBUG] Error checking video access: {str(e)}")
+        # إذا لم يكن هناك سجل طالب، نقوم بإنشائه
+        if isinstance(e, Student.DoesNotExist):
+            student = Student.objects.create(user=request.user)
+            print(f"[DEBUG] Created new student profile for user {request.user.username}")
+
+    # تحقق من المفتاح الجديد في الجلسة
+    if not secret_code_valid and video_key in request.session and request.session[video_key]:
+        secret_code_valid = True
+
+    # تحقق من المفاتيح القديمة
+    if not secret_code_valid and 'videos_unlocked_with_secret_code' in request.session:
+        if str(video_id) in request.session['videos_unlocked_with_secret_code']:
+            secret_code_valid = True
+            # نقل البيانات إلى المفتاح الجديد
+            request.session[video_key] = True
+            request.session.modified = True
+
+    if not secret_code_valid and 'authorized_videos' in request.session:
+        if str(video_id) in request.session['authorized_videos']:
+            secret_code_valid = True
+            # نقل البيانات إلى المفتاح الجديد
+            request.session[video_key] = True
+            request.session.modified = True
+
+    # طباعة معلومات التشخيص
+    print(f"[DEBUG] Session ID: {request.session.session_key}")
+    print(f"[DEBUG] Video key: {video_key}")
+    print(f"[DEBUG] Video unlocked: {secret_code_valid}")
+    print(f"[DEBUG] All session data: {dict(request.session)}")
+
+    # التحقق من الأكواد المستخدمة للفيديو المحدد فقط
+    has_used_code = False
+
+    # تحقق فقط من الأكواد المستخدمة للفيديو المحدد
+    video_access_codes = AccessCode.objects.filter(
+        video=video,
+        used_by=request.user,
+        is_used=True
+    )
+
+    # فحص الأكواد المستخدمة للفيديو المحدد
+    has_expired_code = False
+
+    for code in video_access_codes:
+        # تحقق من صلاحية الكود
+        if code.is_expired():
+            has_expired_code = True
+            continue
+
+        # الكود صالح
+        has_used_code = True
+
+        # إذا كان الفيديو مفعل، قم بتفعيل الفيديو الحالي
+        if not secret_code_valid:
+            secret_code_valid = True
+            # حفظ حالة فتح الفيديو في الجلسة
+            request.session[video_key] = True
+
+            # حفظ في المفاتيح القديمة أيضًا للتوافق
+            if 'authorized_videos' not in request.session:
+                request.session['authorized_videos'] = []
+            if str(video_id) not in request.session['authorized_videos']:
+                request.session['authorized_videos'].append(str(video_id))
+
+            if 'videos_unlocked_with_secret_code' not in request.session:
+                request.session['videos_unlocked_with_secret_code'] = []
+            if str(video_id) not in request.session['videos_unlocked_with_secret_code']:
+                request.session['videos_unlocked_with_secret_code'].append(str(video_id))
+
+            request.session.modified = True
+            request.session.save()
+
+            # إنشاء سجل وصول للفيديو في قاعدة البيانات إذا لم يكن موجوداً
+            try:
+                student = Student.objects.get(user=request.user)
+                # تحقق من وجود سجل وصول للفيديو
+                video_access, created = StudentVideoAccess.objects.get_or_create(
+                    student=student,
+                    video=video,
+                    defaults={'access_code': code}
+                )
+                if created:
+                    print(f"[DEBUG] Created new video access record: {video_access}")
+                else:
+                    print(f"[DEBUG] Updated existing video access record: {video_access}")
+            except Exception as e:
+                print(f"[DEBUG] Error creating video access record: {str(e)}")
+
+            print(f"[DEBUG] Video unlocked because video-specific code was used. Session data: {dict(request.session)}")
+
+        break
+
+    # معالجة طلب POST (إدخال كود)
+    if request.method == 'POST':
+        # التحقق من إدخال الرمز السري
+        if 'access_code' in request.POST:
+            entered_code = request.POST.get('access_code', '').strip().upper()
+
+            # البحث عن الكود في قاعدة البيانات (للفيديو أو للكورس)
+            try:
+                # طباعة معلومات تشخيصية
+                print(f"[DEBUG] Searching for access code: {entered_code}")
+                print(f"[DEBUG] Video ID: {video.id}, Course ID: {course.id}")
+
+                # البحث عن الكود المستخدم بالفعل من قبل هذا المستخدم للفيديو المحدد فقط
+                used_code = AccessCode.objects.filter(
+                    code=entered_code,
+                    used_by=request.user,
+                    is_used=True,
+                    video=video
+                ).first()
+
+                if used_code:
+                    # إذا كان الكود مستخدم بالفعل من قبل هذا المستخدم، استخدمه مباشرة
+                    print(f"[DEBUG] Found previously used code: {used_code}")
+                    access_code = used_code
+                else:
+                    # البحث عن كود جديد غير مستخدم للفيديو المحدد فقط
+                    video_code = AccessCode.objects.filter(
+                        code=entered_code,
+                        video=video,
+                        is_used=False
+                    ).first()
+
+                    # البحث عن كود فيديو واحد فقط
+                    single_code = AccessCode.objects.filter(
+                        code=entered_code,
+                        video=video,
+                        code_type='single',
+                        is_used=False
+                    ).first()
+
+                    # البحث عن كود للكورس
+                    course_code = AccessCode.objects.filter(
+                        code=entered_code,
+                        course=course,
+                        video__isnull=True,
+                        is_used=False
+                    ).first()
+
+                    # تحديد الكود المناسب
+                    access_code = video_code or single_code
+
+                    # إذا لم يتم العثور على كود للفيديو المحدد، نبحث عن كود للكورس
+                    if not access_code and course_code:
+                        # إذا كان نوع الكود هو كود كورس، نستخدمه مباشرة
+                        if course_code.code_type == 'course':
+                            access_code = course_code
+                        else:
+                            # إنشاء كود جديد للفيديو المحدد
+                            new_code = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', k=8))
+                            while AccessCode.objects.filter(code=new_code).exists():
+                                new_code = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', k=8))
+
+                            # إنشاء كود جديد للفيديو المحدد
+                            access_code = AccessCode.objects.create(
+                                code=new_code,
+                                video=video,
+                                course=course,
+                                code_type='video',
+                                created_by=course_code.created_by
+                            )
+
+                            # تعيين الكود الأصلي كمستخدم
+                            course_code.is_used = True
+                            course_code.used_by = request.user
+                            course_code.used_at = timezone.now()
+                            course_code.save()
+
+                    print(f"[DEBUG] Found new access code: {access_code}")
+
+                print(f"[DEBUG] Using access code: {access_code}")
+
+                if not access_code:
+                    raise AccessCode.DoesNotExist
+
+                if access_code.is_expired():
+                    messages.error(request, 'كود الوصول منتهي الصلاحية')
+                else:
+                    # تفعيل الكود
+                    access_code.is_used = True
+                    access_code.used_by = request.user
+                    access_code.used_at = timezone.now()
+                    access_code.save()
+
+                    # تفعيل الوصول للفيديو
+                    secret_code_valid = True
+                    request.session[video_key] = True
+                    request.session.modified = True
+
+                    # إنشاء سجل وصول للفيديو
+                    try:
+                        student = Student.objects.get(user=request.user)
+                        StudentVideoAccess.objects.create(
+                            student=student,
+                            video=video,
+                            access_code=access_code
+                        )
+                    except Exception as e:
+                        print(f"[DEBUG] Error creating video access record: {str(e)}")
+
+                    messages.success(request, 'تم تفعيل الكود بنجاح! يمكنك الآن مشاهدة الفيديو.')
+            except AccessCode.DoesNotExist:
+                messages.error(request, 'كود الوصول غير صحيح')
+        elif 'secret_code' in request.POST:
+            entered_code = request.POST.get('secret_code', '').strip().upper()
+            stored_code = video.secret_code.strip().upper()
+
+            print(f"[DEBUG] Entered code: '{entered_code}'")
+            print(f"[DEBUG] Stored code: '{stored_code}'")
+
+            if not entered_code:
+                messages.error(request, 'الرجاء إدخال الرمز السري')
+            elif entered_code == stored_code:
+                # الكود صحيح - تفعيل الوصول للفيديو
+                secret_code_valid = True
+
+                # حفظ حالة فتح الفيديو في الجلسة بطريقة مبسطة
+                request.session[video_key] = True
+
+                # حفظ في المفاتيح القديمة أيضًا للتوافق
+                if 'authorized_videos' not in request.session:
+                    request.session['authorized_videos'] = []
+                if str(video_id) not in request.session['authorized_videos']:
+                    request.session['authorized_videos'].append(str(video_id))
+
+                if 'videos_unlocked_with_secret_code' not in request.session:
+                    request.session['videos_unlocked_with_secret_code'] = []
+                if str(video_id) not in request.session['videos_unlocked_with_secret_code']:
+                    request.session['videos_unlocked_with_secret_code'].append(str(video_id))
+
+                request.session.modified = True
+
+                # تسجيل المشاهدة
+                VideoView.objects.create(
+                    video=video,
+                    user=request.user,
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    user_agent=request.META.get('HTTP_USER_AGENT', '')
+                )
+
+                # حفظ الجلسة بشكل صريح
+                request.session.save()
+
+                print(f"[DEBUG] Video unlocked successfully. Session data: {dict(request.session)}")
+
+                # تعيين متغير لعرض الفيديو مباشرة بدلاً من إعادة التوجيه
+                secret_code_valid = True
+
+                # إعداد سياق العرض للفيديو مباشرة
+                context = {
+                    'video': video,
+                    'course': course,
+                    'is_guest': is_guest,
+                    'secret_code_required': False,  # لا نحتاج لطلب الكود مرة أخرى
+                    'secret_code_valid': True,  # الكود صالح
+                    'access_code_required': False,
+                    'access_code_valid': True,
+                    'preview_only': False,
+                    'code_expired': False,
+                    'has_expired_code': False,
+                    'show_success_message': True  # لعرض رسالة النجاح
+                }
+
+                messages.success(request, 'تم تفعيل الكود بنجاح! يمكنك الآن مشاهدة الفيديو.')
+                return render(request, 'core/video_detail.html', context)
+
+    # إذا لم يكن هناك وصول صالح، اعرض نموذج إدخال الكود
+    if not secret_code_valid:
+        context = {
+            'video': video,
+            'course': course,
+            'is_guest': is_guest,
+            'secret_code_required': True,
+            'secret_code_valid': False,
+            'access_code_required': True,
+            'access_code_valid': False,
+            'preview_only': False,
+            'code_expired': has_expired_code,
+            'has_expired_code': has_expired_code
+        }
+        return render(request, 'core/video_detail.html', context)
+
+    # إذا كان هناك وصول صالح، اعرض الفيديو
+    context = {
+        'video': video,
+        'course': course,
+        'is_guest': is_guest,
+        'secret_code_required': False,
+        'secret_code_valid': True,
+        'access_code_required': False,
+        'access_code_valid': True,
+        'preview_only': False,
+        'code_expired': False,
+        'has_expired_code': False
+    }
+    return render(request, 'core/video_detail.html', context)
+
+# Admin-specific views
+@login_required
+def admin_dashboard(request):
+    """Admin dashboard view"""
+    if not request.user.is_staff:
+        return HttpResponseForbidden(_("You don't have permission to access this page."))
+
+    # Get statistics for the dashboard
+    total_users = User.objects.filter(is_staff=False).count()
+    total_videos = Video.objects.count()
+    total_views = VideoView.objects.count()
+
+    # Get recent video views
+    recent_views = VideoView.objects.select_related('user', 'video').order_by('-viewed_at')[:10]
+
+    # Get all courses for the teacher form
+    courses = Course.objects.all().order_by('grade__name_ar', 'name_ar')
+
+    # Get all teachers
+    teachers = Teacher.objects.all().annotate(
+        avg_rating=Avg('reviews__rating'),
+        review_count=Count('reviews')
+    ).order_by('-avg_rating')
+
+    context = {
+        'total_users': total_users,
+        'total_videos': total_videos,
+        'total_views': total_views,
+        'recent_views': recent_views,
+        'courses': courses,
+        'teachers': teachers,
+        'page_title': 'لوحة التحكم'
+    }
+
+    return render(request, 'core/admin/dashboard.html', context)
+
+@login_required
+def generate_video_code(request, video_id):
+    """Generate a new secret code for a video"""
+    if not request.user.is_staff:
+        return HttpResponseForbidden(_("You don't have permission to access this page."))
+
+    video = get_object_or_404(Video, id=video_id)
+    new_code = video.generate_secret_code()
+
+    return JsonResponse({'success': True, 'new_code': new_code})
+
+@login_required
+def add_teacher(request):
+    """Add a new teacher"""
+    if not request.user.is_staff:
+        return HttpResponseForbidden(_("You don't have permission to access this page."))
+
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        name_ar = request.POST.get('name_ar')
+        bio = request.POST.get('bio')
+        courses_ids = request.POST.getlist('courses')
+
+        # Validate required fields
+        if not name_ar:
+            return JsonResponse({'success': False, 'error': 'الاسم بالعربية مطلوب'})
+
+        try:
+            # Create the teacher
+            teacher = Teacher.objects.create(
+                name=name or name_ar,
+                name_ar=name_ar,
+                bio=bio
+            )
+
+            # Handle profile image upload
+            if 'profile_image' in request.FILES:
+                teacher.profile_image = request.FILES['profile_image']
+                teacher.save()
+
+            # Add courses
+            if courses_ids:
+                courses = Course.objects.filter(id__in=courses_ids)
+                teacher.courses.add(*courses)
+
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': True})
+            else:
+                messages.success(request, _('تم إضافة المدرس بنجاح!'))
+                return redirect('core:admin_dashboard')
+
+        except Exception as e:
+            logger.error(f"Error adding teacher: {str(e)}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': str(e)})
+            else:
+                messages.error(request, _('حدث خطأ أثناء إضافة المدرس.'))
+                return redirect('core:admin_dashboard')
+
+    # GET request - redirect to admin dashboard
+    return redirect('core:admin_dashboard')
+
+# API endpoints for AJAX requests
+@csrf_exempt
+@require_POST
+def check_phone_exists(request):
+    """Check if a phone number already exists"""
+    data = json.loads(request.body)
+    phone_number = data.get('phone_number')
+    email = data.get('email')
+
+    if phone_number:
+        exists = User.objects.filter(username=phone_number).exists()
+    elif email:
+        exists = User.objects.filter(email=email).exists()
+    else:
+        exists = False
+
+    return JsonResponse({'exists': exists})
+
+def get_courses_by_grade(request, grade_id):
+    """Get courses for a specific grade"""
+    try:
+        grade = Grade.objects.get(id=grade_id)
+        courses = Course.objects.filter(grade=grade).order_by('order')
+
+        courses_data = [
+            {
+                'id': course.id,
+                'name': course.name,
+                'name_ar': course.name_ar,
+                'description': course.description,
+                'order': course.order
+            }
+            for course in courses
+        ]
+
+        return JsonResponse(courses_data, safe=False)
+    except Grade.DoesNotExist:
+        return JsonResponse([], safe=False)
+
+def get_lessons_by_course(request, course_id):
+    """Get lessons for a specific course"""
+    try:
+        course = Course.objects.get(id=course_id)
+        lessons = Lesson.objects.filter(course=course).order_by('order')
+
+        lessons_data = [
+            {
+                'id': lesson.id,
+                'title': lesson.title,
+                'title_ar': lesson.title_ar,
+                'order': lesson.order
+            }
+            for lesson in lessons
+        ]
+
+        return JsonResponse(lessons_data, safe=False)
+    except Course.DoesNotExist:
+        return JsonResponse([], safe=False)
+
+@login_required
+def profile_view(request):
+    """Display user profile"""
+    # Create student profile if it doesn't exist
+    student, created = Student.objects.get_or_create(user=request.user)
+
+    if created:
+        # Add user's grades to student profile
+        for grade in request.user.grades.all():
+            student.grades.add(grade)
+
+    # Get courses the student has access to
+    courses = student.get_courses()
+
+    # Get recent video views
+    recent_views = VideoView.objects.filter(user=request.user).order_by('-viewed_at')[:10]
+
+    # Get videos the student has access to
+    video_access_records = StudentVideoAccess.objects.filter(student=student).select_related('video', 'access_code').order_by('-access_date')
+
+    # Count videos and courses
+    videos_count = VideoView.objects.filter(user=request.user).count()
+    courses_count = courses.count()
+
+    # Count accessible videos
+    accessible_videos_count = video_access_records.count()
+
+    context = {
+        'page_title': 'الملف الشخصي',
+        'courses': courses,
+        'recent_views': recent_views,
+        'videos_count': videos_count,
+        'courses_count': courses_count,
+        'video_access_records': video_access_records,
+        'accessible_videos_count': accessible_videos_count,
+    }
+
+    return render(request, 'core/profile.html', context)
+
+@login_required
+def edit_profile_view(request):
+    """Edit user profile"""
+    # Create student profile if it doesn't exist
+    student, created = Student.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        # Process form data
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        bio = request.POST.get('bio')
+
+        # Update user info
+        request.user.first_name = first_name
+        request.user.last_name = last_name
+        request.user.email = email
+        request.user.save()
+
+        # Update student info
+        student.bio = bio
+
+        # Handle profile image upload
+        if 'profile_image' in request.FILES:
+            student.profile_image = request.FILES['profile_image']
+
+        student.save()
+
+        # Handle password change if provided
+        current_password = request.POST.get('current_password')
+        new_password1 = request.POST.get('new_password1')
+        new_password2 = request.POST.get('new_password2')
+
+        if current_password and new_password1 and new_password2:
+            if new_password1 == new_password2:
+                # Check current password
+                if request.user.check_password(current_password):
+                    request.user.set_password(new_password1)
+                    request.user.save()
+
+                    # Update session to prevent logout
+                    from django.contrib.auth import update_session_auth_hash
+                    update_session_auth_hash(request, request.user)
+
+                    messages.success(request, _('تم تغيير كلمة المرور بنجاح.'))
+                else:
+                    messages.error(request, _('كلمة المرور الحالية غير صحيحة.'))
+            else:
+                messages.error(request, _('كلمات المرور الجديدة غير متطابقة.'))
+
+        messages.success(request, _('تم تحديث الملف الشخصي بنجاح.'))
+        return redirect('core:profile')
+
+    # Create a form context for the template
+    form = {
+        'first_name': {'value': request.user.first_name, 'errors': []},
+        'last_name': {'value': request.user.last_name, 'errors': []},
+        'email': {'value': request.user.email, 'errors': []},
+        'phone_number': {'value': request.user.username, 'errors': []},
+        'bio': {'value': student.bio, 'errors': []},
+        'profile_image': {'errors': []},
+        'current_password': {'errors': []},
+        'new_password1': {'errors': []},
+        'new_password2': {'errors': []},
+        'non_field_errors': []
+    }
+
+    context = {
+        'page_title': 'تعديل الملف الشخصي',
+        'form': form
+    }
+
+    return render(request, 'core/edit_profile.html', context)
+
+@login_required
+@require_POST
+def video_analytics(request):
+    """Save video analytics data"""
+    try:
+        data = json.loads(request.body)
+        video_id = data.get('video_id')
+        watch_duration = data.get('watch_duration', 0)
+        completed = data.get('completed', False)
+
+        if not video_id:
+            return JsonResponse({'error': 'Video ID is required'}, status=400)
+
+        # Get the video
+        try:
+            video = Video.objects.get(id=video_id)
+        except Video.DoesNotExist:
+            return JsonResponse({'error': 'Video not found'}, status=404)
+
+        # Create or update video view
+        video_view, created = VideoView.objects.get_or_create(
+            video=video,
+            user=request.user,
+            defaults={
+                'ip_address': request.META.get('REMOTE_ADDR'),
+                'user_agent': request.META.get('HTTP_USER_AGENT', ''),
+                'watch_duration': watch_duration,
+                'completed': completed
+            }
+        )
+
+        if not created:
+            # Update existing view
+            video_view.watch_duration = max(video_view.watch_duration, watch_duration)
+            video_view.completed = video_view.completed or completed
+            video_view.save()
+
+        # Check if all videos in the lesson are completed
+        lesson = video.lesson
+        all_videos = Video.objects.filter(lesson=lesson)
+        completed_videos = VideoView.objects.filter(
+            video__lesson=lesson,
+            user=request.user,
+            completed=True
+        ).count()
+
+        # Check if this was the last video to complete the lesson
+        lesson_completed = (completed_videos == all_videos.count())
+
+        # Check if all lessons in the course are completed
+        course_completed = False
+        if lesson_completed:
+            course = lesson.course
+            all_lessons = Lesson.objects.filter(course=course)
+
+            # For each lesson, check if all videos are completed
+            lessons_completed = 0
+            for course_lesson in all_lessons:
+                lesson_videos = Video.objects.filter(lesson=course_lesson)
+                completed_lesson_videos = VideoView.objects.filter(
+                    video__lesson=course_lesson,
+                    user=request.user,
+                    completed=True
+                ).count()
+
+                if completed_lesson_videos == lesson_videos.count() and lesson_videos.count() > 0:
+                    lessons_completed += 1
+
+            course_completed = (lessons_completed == all_lessons.count() and all_lessons.count() > 0)
+
+        return JsonResponse({
+            'success': True,
+            'video_id': video_id,
+            'watch_duration': video_view.watch_duration,
+            'completed': video_view.completed,
+            'lesson_completed': lesson_completed,
+            'course_completed': course_completed,
+            'lesson_name': lesson.title_ar if lesson_completed else '',
+            'course_name': lesson.course.name_ar if course_completed else ''
+        })
+    except Exception as e:
+        logger.error(f"Error saving video analytics: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+# Teacher views
+@login_required
+def teachers_list_view(request):
+    """Display all teachers with their ratings"""
+    teachers = Teacher.objects.annotate(
+        avg_rating=Avg('reviews__rating'),
+        review_count=Count('reviews')
+    ).order_by('-avg_rating')
+
+    context = {
+        'teachers': teachers,
+        'page_title': _('تقييم المعلمين')
+    }
+    return render(request, 'core/teachers_list.html', context)
+
+
+def is_teacher(user):
+    """Check if user is a teacher"""
+    return Teacher.objects.filter(user=user).exists()
+
+
+@login_required
+def teacher_dashboard(request):
+    """Teacher dashboard view"""
+    # Check if user is a teacher
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, _('أنت لست مدرسًا في النظام'))
+        return redirect('core:home')
+
+    # Get courses taught by this teacher
+    teacher_courses = teacher.courses.all()
+
+    # Count total videos in teacher's courses
+    total_videos = Video.objects.filter(lesson__course__in=teacher_courses).count()
+
+    # Get teacher's average rating
+    teacher_rating = TeacherReview.objects.filter(teacher=teacher).aggregate(Avg('rating'))['rating__avg']
+    if teacher_rating:
+        teacher_rating = round(teacher_rating, 1)
+
+    # Count total views of teacher's videos
+    total_views = VideoView.objects.filter(video__lesson__course__in=teacher_courses).count()
+
+    # Count total students who viewed teacher's videos
+    total_students = VideoView.objects.filter(
+        video__lesson__course__in=teacher_courses
+    ).values('user').distinct().count()
+
+    # Get recent views of teacher's videos
+    recent_views = VideoView.objects.filter(
+        video__lesson__course__in=teacher_courses
+    ).select_related('video', 'user').order_by('-viewed_at')[:10]
+
+    context = {
+        'teacher': teacher,
+        'teacher_courses': teacher_courses,
+        'total_videos': total_videos,
+        'teacher_rating': teacher_rating,
+        'total_views': total_views,
+        'total_students': total_students,
+        'recent_views': recent_views,
+        'page_title': _('لوحة تحكم المعلم')
+    }
+
+    return render(request, 'core/teacher_dashboard.html', context)
+
+
+@login_required
+def teacher_course_detail(request, course_id):
+    """Teacher course detail view"""
+    # Check if user is a teacher
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, _('أنت لست مدرسًا في النظام'))
+        return redirect('core:home')
+
+    # Check if the teacher teaches this course
+    try:
+        course = Course.objects.get(id=course_id, teachers=teacher)
+    except Course.DoesNotExist:
+        messages.error(request, _('أنت لست مدرسًا لهذا الكورس'))
+        return redirect('core:teacher_dashboard')
+
+    # Get lessons for this course
+    lessons = Lesson.objects.filter(course=course).order_by('order')
+
+    # Count total videos in this course
+    total_videos = Video.objects.filter(lesson__course=course).count()
+
+    # Count total students who viewed videos in this course
+    total_students = VideoView.objects.filter(
+        video__lesson__course=course
+    ).values('user').distinct().count()
+
+    # Get assignments for this course
+    assignments = Assignment.objects.filter(course=course).order_by('-created_at')
+
+    context = {
+        'teacher': teacher,
+        'course': course,
+        'lessons': lessons,
+        'total_videos': total_videos,
+        'total_students': total_students,
+        'assignments': assignments,
+        'page_title': course.name_ar
+    }
+
+    return render(request, 'core/teacher_course_detail.html', context)
+
+
+@login_required
+def edit_teacher_profile(request):
+    """Edit teacher profile view"""
+    # Check if user is a teacher
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, _('أنت لست مدرسًا في النظام'))
+        return redirect('core:home')
+
+    if request.method == 'POST':
+        # Process form data
+        name = request.POST.get('name')
+        name_ar = request.POST.get('name_ar')
+        bio = request.POST.get('bio')
+        bio_ar = request.POST.get('bio_ar')
+        specialization = request.POST.get('specialization')
+        specialization_ar = request.POST.get('specialization_ar')
+
+        # Update teacher profile
+        teacher.name = name
+        teacher.name_ar = name_ar
+        teacher.bio = bio
+        teacher.bio_ar = bio_ar
+        teacher.specialization = specialization
+        teacher.specialization_ar = specialization_ar
+
+        # Handle photo upload
+        if 'photo' in request.FILES:
+            teacher.photo = request.FILES['photo']
+
+        teacher.save()
+        messages.success(request, _('تم تحديث الملف الشخصي بنجاح'))
+        return redirect('core:teacher_dashboard')
+
+    context = {
+        'teacher': teacher,
+        'page_title': _('تعديل الملف الشخصي')
+    }
+
+    return render(request, 'core/edit_teacher_profile.html', context)
+
+
+@login_required
+def teacher_detail_view(request, teacher_id):
+    """Display details for a specific teacher and their reviews"""
+    teacher = get_object_or_404(Teacher, id=teacher_id)
+
+    # Get all reviews for this teacher
+    reviews = TeacherReview.objects.filter(teacher=teacher).select_related('student')
+
+    # Check if the current user has already reviewed this teacher
+    user_has_reviewed = TeacherReview.objects.filter(teacher=teacher, student=request.user).exists()
+
+    # Get courses taught by this teacher
+    courses = teacher.courses.all()
+
+    context = {
+        'teacher': teacher,
+        'reviews': reviews,
+        'user_has_reviewed': user_has_reviewed,
+        'courses': courses,
+        'page_title': teacher.name_ar
+    }
+    return render(request, 'core/teacher_detail.html', context)
+
+
+@login_required
+def teacher_review_view(request, teacher_id):
+    """Handle submission of teacher reviews"""
+    teacher = get_object_or_404(Teacher, id=teacher_id)
+
+    # Check if user has already reviewed this teacher
+    existing_review = TeacherReview.objects.filter(teacher=teacher, student=request.user).first()
+
+    if request.method == 'POST':
+        rating = request.POST.get('rating')
+        comment = request.POST.get('comment', '')
+
+        if not rating or not rating.isdigit() or int(rating) < 1 or int(rating) > 5:
+            messages.error(request, _('يرجى تقديم تقييم صالح من 1 إلى 5 نجوم.'))
+            return redirect('core:teacher_detail', teacher_id=teacher_id)
+
+        if existing_review:
+            # Update existing review
+            existing_review.rating = rating
+            existing_review.comment = comment
+            existing_review.save()
+            messages.success(request, _('تم تحديث تقييمك بنجاح!'))
+        else:
+            # Create new review
+            TeacherReview.objects.create(
+                teacher=teacher,
+                student=request.user,
+                rating=rating,
+                comment=comment
+            )
+            messages.success(request, _('تم إضافة تقييمك بنجاح! شكراً على مشاركتك.'))
+
+        return redirect('core:teacher_detail', teacher_id=teacher_id)
+
+    # GET request - show the review form
+    context = {
+        'teacher': teacher,
+        'existing_review': existing_review,
+        'page_title': _('تقييم المعلم')
+    }
+    return render(request, 'core/teacher_review_form.html', context)
+
+
+def payment_view(request):
+    """Display payment options and packages"""
+    # Get active payment methods
+    payment_methods = PaymentMethod.objects.filter(is_active=True).order_by('name_ar')
+
+    # Get active payment packages
+    packages = PaymentPackage.objects.filter(is_active=True).order_by('price')
+
+    context = {
+        'payment_methods': payment_methods,
+        'packages': packages,
+        'page_title': _('شراء الحصص')
+    }
+
+    return render(request, 'core/payment.html', context)
+
+
+@login_required
+def notifications_view(request):
+    """Display notifications for the current user"""
+    # Get notifications for this user
+    user_notifications = Notification.objects.filter(
+        # Either sent to all users
+        Q(all_users=True) |
+        # Or specifically to this user
+        Q(specific_users=request.user) |
+        # Or to this user's grade
+        Q(specific_grade__in=request.user.student.grades.all() if hasattr(request.user, 'student') else [])
+    ).distinct().order_by('-created_at')
+
+    context = {
+        'notifications': user_notifications,
+        'page_title': _('الإشعارات')
+    }
+
+    return render(request, 'core/notifications.html', context)
+
+
+@login_required
+@require_POST
+def mark_notification_read(request, notification_id):
+    """Mark a notification as read"""
+    notification = get_object_or_404(Notification, id=notification_id)
+
+    # Check if the user has access to this notification
+    user_grades = request.user.student.grades.all() if hasattr(request.user, 'student') else []
+    if notification.all_users or request.user in notification.specific_users.all() or \
+       (notification.specific_grade and notification.specific_grade in user_grades):
+        notification.is_read = True
+        notification.save()
+        return JsonResponse({'success': True})
+
+    return JsonResponse({'success': False, 'error': 'غير مصرح لك بالوصول إلى هذا الإشعار'}, status=403)
+
+
+@login_required
+def create_assignment_view(request):
+    """Create a new assignment or exam"""
+    if not request.user.is_staff:
+        return HttpResponseForbidden(_("You don't have permission to access this page."))
+
+    # Get all courses and lessons for dropdowns
+    courses = Course.objects.all().order_by('grade__order', 'order')
+
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        title_ar = request.POST.get('title_ar')
+        description = request.POST.get('description')
+        assignment_type = request.POST.get('assignment_type')
+        course_id = request.POST.get('course')
+        lesson_id = request.POST.get('lesson')
+        google_sheet_url = request.POST.get('google_sheet_url')
+        google_form_url = request.POST.get('google_form_url')
+        due_date_str = request.POST.get('due_date')
+
+        # Validate required fields
+        if not title_ar or not course_id or not assignment_type:
+            messages.error(request, _('يرجى ملء جميع الحقول المطلوبة.'))
+            return redirect('core:create_assignment')
+
+        try:
+            course = Course.objects.get(id=course_id)
+            lesson = None
+            if lesson_id:
+                lesson = Lesson.objects.get(id=lesson_id)
+
+            # Parse due date if provided
+            due_date = None
+            if due_date_str:
+                try:
+                    due_date = timezone.make_aware(datetime.datetime.strptime(due_date_str, '%Y-%m-%dT%H:%M'))
+                except ValueError:
+                    messages.warning(request, _('تنسيق تاريخ الاستحقاق غير صالح. تم تجاهله.'))
+
+            # Create the assignment
+            assignment = Assignment.objects.create(
+                title=title or title_ar,
+                title_ar=title_ar,
+                description=description,
+                assignment_type=assignment_type,
+                course=course,
+                lesson=lesson,
+                google_sheet_url=google_sheet_url,
+                google_form_url=google_form_url,
+                due_date=due_date,
+                created_by=request.user
+            )
+
+            messages.success(request, _(f'تم إنشاء {assignment.get_assignment_type_display()} بنجاح.'))
+
+            # Redirect to the course or lesson detail page
+            if lesson:
+                return redirect('core:lesson_detail', lesson_id=lesson.id)
+            else:
+                return redirect('core:course_detail', course_id=course.id)
+
+        except (Course.DoesNotExist, Lesson.DoesNotExist):
+            messages.error(request, _('الكورس أو الدرس غير موجود.'))
+            return redirect('core:create_assignment')
+
+    context = {
+        'page_title': 'إنشاء واجب أو امتحان جديد',
+        'courses': courses,
+        'assignment_types': Assignment.ASSIGNMENT_TYPES
+    }
+
+    return render(request, 'core/create_assignment.html', context)
+
+def contact_view(request):
+    """Handle contact form submissions"""
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        subject = request.POST.get('subject')
+        message = request.POST.get('message')
+
+        # Validate form data
+        if not all([name, email, subject, message]):
+            messages.error(request, _('جميع الحقول مطلوبة.'))
+            return redirect('core:home')  # Redirect back to home page where the contact form is
+
+        # Prepare email content
+        email_subject = f"رسالة اتصال جديدة: {subject}"
+        email_message = f"""
+        تم استلام رسالة جديدة من نموذج الاتصال:
+
+        الاسم: {name}
+        البريد الإلكتروني: {email}
+        الموضوع: {subject}
+
+        الرسالة:
+        {message}
+        """
+
+        # Send email (commented out until SMTP is configured)
+        try:
+            # Uncomment this when SMTP is configured
+            # send_mail(
+            #     email_subject,
+            #     email_message,
+            #     settings.DEFAULT_FROM_EMAIL,
+            #     [settings.ADMIN_EMAIL],
+            #     fail_silently=False,
+            # )
+
+            # For now, just log the message
+            logger.info(f"Contact form submission from {name} ({email}): {subject}")
+
+            messages.success(request, _('تم إرسال رسالتك بنجاح! سنتواصل معك قريبًا.'))
+        except Exception as e:
+            logger.error(f"Error sending contact email: {str(e)}")
+            messages.error(request, _('حدث خطأ أثناء إرسال رسالتك. يرجى المحاولة مرة أخرى لاحقًا.'))
+
+        return redirect('core:home')
+
+    # If not POST, redirect to home page
+    return redirect('core:home')
+
+
+@login_required
+@staff_member_required
+def generate_bulk_access_codes(request):
+    """Generate multiple access codes at once"""
+    if request.method == 'POST':
+        video_id = request.POST.get('video')
+        course_id = request.POST.get('course')
+        count = int(request.POST.get('count', 100))
+        code_type = request.POST.get('code_type', 'video')  # Default to 'video' if not specified
+
+        # Validate count
+        if count <= 0 or count > 1000:
+            count = 100
+
+        # Get video or course
+        video = None
+        course = None
+
+        if video_id:
+            try:
+                video = Video.objects.get(id=video_id)
+            except Video.DoesNotExist:
+                messages.error(request, 'الفيديو المحدد غير موجود')
+                return redirect('core:admin_dashboard')
+
+        if course_id:
+            try:
+                course = Course.objects.get(id=course_id)
+            except Course.DoesNotExist:
+                messages.error(request, 'الكورس المحدد غير موجود')
+                return redirect('core:admin_dashboard')
+
+        # Validate that either course or video is selected
+        if not course and not video:
+            messages.error(request, 'يجب اختيار كورس أو فيديو')
+            return redirect('core:admin_dashboard')
+
+        # Validate code type based on selection
+        if code_type == 'single' and not video:
+            messages.error(request, 'يجب اختيار فيديو عند إنشاء كود فيديو واحد فقط')
+            return redirect('core:admin_dashboard')
+
+        if code_type == 'course' and not course:
+            messages.error(request, 'يجب اختيار كورس عند إنشاء كود كورس')
+            return redirect('core:admin_dashboard')
+
+        # Generate the codes
+        codes = AccessCode.generate_codes(count, request.user, video, course, code_type)
+
+        # Prepare success message
+        if video:
+            target_name = video.title_ar
+        else:
+            target_name = course.name_ar
+
+        code_type_name = dict(AccessCode.CODE_TYPES).get(code_type, 'كود')
+        messages.success(request, f'تم إنشاء {count} {code_type_name} بنجاح لـ {target_name}')
+
+        # Store codes in session for display
+        request.session['generated_codes'] = codes
+
+        return redirect('core:bulk_codes_result')
+
+    # If not POST, redirect to admin dashboard
+    return redirect('core:admin_dashboard')
+
+
+@login_required
+@staff_member_required
+def bulk_codes_result(request):
+    """Display the results of bulk code generation"""
+    codes = request.session.get('generated_codes', [])
+
+    context = {
+        'codes': codes,
+        'title': 'أكواد الوصول المنشأة',
+        'page_title': 'أكواد الوصول المنشأة'
+    }
+    return render(request, 'core/admin/bulk_codes_result.html', context)
+
+
+@login_required
+def video_stream_view(request, video_id):
+    """Stream video with enhanced protection against downloading and unauthorized access"""
+    video = get_object_or_404(Video, id=video_id)
+
+    # For YouTube videos, we don't need to stream anything
+    if video.video_type == 'youtube':
+        return HttpResponseForbidden(_("YouTube videos are embedded directly and don't need streaming."))
+
+    # Make sure the video file exists
+    if not video.video_file or not video.video_file.name:
+        return HttpResponseForbidden(_("No video file available."))
+
+    # Check if user is authorized to view this video
+    video_key = f"video_{video_id}_unlocked"
+    is_authorized = False
+
+    # Log access attempt for security monitoring
+    logging.info(f"Video stream access attempt: User={request.user.username}, Video={video_id}, Session={request.session.session_key}")
+
+    # تحقق أولاً من قاعدة البيانات - هل الطالب لديه وصول مسجل لهذا الفيديو؟
+    try:
+        student = Student.objects.get(user=request.user)
+        # تحقق من وجود سجل وصول للفيديو
+        video_access = StudentVideoAccess.objects.filter(student=student, video=video).first()
+        if video_access:
+            is_authorized = True
+            # تحديث عداد المشاهدات
+            video_access.increment_view_count()
+            print(f"[DEBUG] Stream - Video access found in database. Access record: {video_access}")
+    except (Student.DoesNotExist, Exception) as e:
+        print(f"[DEBUG] Stream - Error checking video access: {str(e)}")
+        # إذا لم يكن هناك سجل طالب، نقوم بإنشائه
+        if isinstance(e, Student.DoesNotExist):
+            student = Student.objects.create(user=request.user)
+            print(f"[DEBUG] Stream - Created new student profile for user {request.user.username}")
+
+    # تحقق من المفتاح الجديد
+    if not is_authorized and video_key in request.session and request.session[video_key]:
+        is_authorized = True
+
+    # طباعة معلومات التشخيص
+    print(f"[DEBUG] Stream - Session ID: {request.session.session_key}")
+    print(f"[DEBUG] Stream - Video key: {video_key}")
+    print(f"[DEBUG] Stream - Video unlocked: {is_authorized}")
+    print(f"[DEBUG] Stream - All session data: {dict(request.session)}")
+
+    # للتوافق مع الإصدارات السابقة، تحقق أيضًا من المفاتيح القديمة
+    if not is_authorized:
+        # تحقق من المفاتيح القديمة
+        if 'videos_unlocked_with_secret_code' in request.session:
+            if str(video_id) in request.session['videos_unlocked_with_secret_code']:
+                is_authorized = True
+                # نقل البيانات إلى المفتاح الجديد
+                request.session[video_key] = True
+                request.session.modified = True
+                print(f"[DEBUG] Stream - Video authorized via old key videos_unlocked_with_secret_code")
+
+        if not is_authorized and 'authorized_videos' in request.session and str(video_id) in request.session['authorized_videos']:
+            is_authorized = True
+            # نقل البيانات إلى المفتاح الجديد
+            request.session[video_key] = True
+            request.session.modified = True
+            print(f"[DEBUG] Stream - Video authorized via old key authorized_videos")
+
+            # إنشاء سجل وصول دائم للفيديو في قاعدة البيانات
+            try:
+                student = Student.objects.get(user=request.user)
+                # تحقق من وجود سجل وصول للفيديو
+                video_access, created = StudentVideoAccess.objects.get_or_create(
+                    student=student,
+                    video=video
+                )
+                if created:
+                    print(f"[DEBUG] Stream - Created new permanent video access record from session: {video_access}")
+            except Exception as e:
+                print(f"[DEBUG] Stream - Error creating video access record: {str(e)}")
+
+        # تحقق مما إذا كان المستخدم لديه كود وصول صالح للفيديو المحدد فقط
+        if not is_authorized:
+            # تحقق من الأكواد المستخدمة للفيديو المحدد
+            video_access_codes = AccessCode.objects.filter(
+                Q(video=video, used_by=request.user, is_used=True) |
+                Q(video=video, code_type='single', used_by=request.user, is_used=True) |
+                Q(course=video.lesson.course, code_type='course', used_by=request.user, is_used=True)
+            )
+
+            # فحص الأكواد المستخدمة للفيديو المحدد - الأكواد تعمل مدى الحياة
+            if video_access_codes.exists():
+                is_authorized = True
+                # حفظ حالة فتح الفيديو في الجلسة
+                request.session[video_key] = True
+                request.session.modified = True
+                print(f"[DEBUG] Stream - Video authorized via video-specific access code")
+
+                # إنشاء سجل وصول دائم للفيديو في قاعدة البيانات
+                try:
+                    student = Student.objects.get(user=request.user)
+                    # تحقق من وجود سجل وصول للفيديو
+                    video_access, created = StudentVideoAccess.objects.get_or_create(
+                        student=student,
+                        video=video,
+                        defaults={'access_code': video_access_codes.first()}
+                    )
+                    if created:
+                        print(f"[DEBUG] Stream - Created new permanent video access record from access code: {video_access}")
+                except Exception as e:
+                    print(f"[DEBUG] Stream - Error creating video access record: {str(e)}")
+
+        # حفظ الجلسة بشكل صريح إذا تم تعديلها
+        if request.session.modified:
+            request.session.save()
+
+    # Check if user is authorized to view this video
+    if not is_authorized:
+        return HttpResponseForbidden(_("You are not authorized to view this video."))
+
+    # Record the view if not already recorded
+    VideoView.objects.get_or_create(
+        video=video,
+        user=request.user,
+        defaults={
+            'ip_address': request.META.get('REMOTE_ADDR'),
+            'user_agent': request.META.get('HTTP_USER_AGENT', '')
+        }
+    )
+
+    # Instead of redirecting, we'll serve the file directly from media
+    # This ensures proper content type and headers
+    from django.http import FileResponse
+    import os
+    from django.conf import settings
+
+    file_path = os.path.join(settings.MEDIA_ROOT, video.video_file.name)
+
+    # Check if file exists
+    if not os.path.exists(file_path):
+        return HttpResponseForbidden(_("Video file not found."))
+
+    # Serve the file with appropriate headers
+    response = FileResponse(open(file_path, 'rb'), content_type='video/mp4')
+    response['Accept-Ranges'] = 'bytes'
+    response['X-Frame-Options'] = 'SAMEORIGIN'
+    response['Content-Disposition'] = f'inline; filename="{os.path.basename(file_path)}"'
+    response['X-Content-Type-Options'] = 'nosniff'
+
+    return response

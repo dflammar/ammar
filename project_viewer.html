@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عارض مشروع منصة التعليم</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #3f51b5;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        h2 {
+            color: #3f51b5;
+            border-bottom: 2px solid #3f51b5;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .file-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .file-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .file-list li:last-child {
+            border-bottom: none;
+        }
+        .file-list i {
+            margin-right: 10px;
+            color: #666;
+        }
+        .folder {
+            color: #FFC107;
+        }
+        .file {
+            color: #2196F3;
+        }
+        .py-file {
+            color: #4CAF50;
+        }
+        .html-file {
+            color: #FF5722;
+        }
+        .css-file {
+            color: #9C27B0;
+        }
+        .js-file {
+            color: #FFEB3B;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #3f51b5;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            background-color: #303f9f;
+        }
+        .actions {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>عارض مشروع منصة التعليم</h1>
+        
+        <div class="section">
+            <h2>نظرة عامة على المشروع</h2>
+            <p>هذا المشروع هو منصة تعليمية تتيح للطلاب الوصول إلى المحتوى التعليمي من خلال أكواد وصول خاصة. يتضمن المشروع نظام تسجيل دخول، ولوحة تحكم للمسؤول، وعرض للفيديوهات التعليمية.</p>
+        </div>
+        
+        <div class="section">
+            <h2>هيكل المشروع</h2>
+            <ul class="file-list">
+                <li><i class="folder">📁</i> <strong>core</strong> - التطبيق الرئيسي</li>
+                <li><i class="folder">📁</i> <strong>core/templates</strong> - قوالب HTML</li>
+                <li><i class="folder">📁</i> <strong>core/static</strong> - ملفات CSS و JavaScript والصور</li>
+                <li><i class="folder">📁</i> <strong>teacher_platform</strong> - إعدادات المشروع</li>
+                <li><i class="folder">📁</i> <strong>media</strong> - ملفات الوسائط المتعددة المرفوعة</li>
+                <li><i class="py-file">🐍</i> <strong>manage.py</strong> - سكريبت إدارة Django</li>
+                <li><i class="py-file">🐍</i> <strong>run_debug_server.py</strong> - سكريبت تشغيل الخادم</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>الملفات الرئيسية</h2>
+            <ul class="file-list">
+                <li><i class="py-file">🐍</i> <strong>core/views.py</strong> - وظائف العرض</li>
+                <li><i class="py-file">🐍</i> <strong>core/models.py</strong> - نماذج قاعدة البيانات</li>
+                <li><i class="py-file">🐍</i> <strong>core/urls.py</strong> - تكوين عناوين URL</li>
+                <li><i class="html-file">🌐</i> <strong>core/templates/core/base.html</strong> - قالب HTML الأساسي</li>
+                <li><i class="html-file">🌐</i> <strong>core/templates/core/home.html</strong> - صفحة الرئيسية</li>
+                <li><i class="html-file">🌐</i> <strong>core/templates/core/video_detail.html</strong> - صفحة تفاصيل الفيديو</li>
+                <li><i class="css-file">🎨</i> <strong>core/static/core/css/style.css</strong> - أنماط CSS</li>
+                <li><i class="js-file">📜</i> <strong>core/static/core/js/main.js</strong> - سكريبت JavaScript</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>الميزات الرئيسية</h2>
+            <ul>
+                <li>نظام تسجيل دخول وتسجيل مستخدمين جديد</li>
+                <li>عرض الصفوف الدراسية والمواد والدروس</li>
+                <li>نظام أكواد وصول للفيديوهات</li>
+                <li>لوحة تحكم للمسؤول</li>
+                <li>حماية الفيديوهات من المشاركة غير المصرح بها</li>
+                <li>تتبع تقدم الطلاب</li>
+            </ul>
+        </div>
+        
+        <div class="actions">
+            <a href="open_project.bat" class="btn">فتح المشروع</a>
+            <a href="run_server_direct.bat" class="btn">تشغيل الخادم</a>
+            <a href="check_ports.bat" class="btn">فحص المنافذ</a>
+            <a href="fix_hosts.bat" class="btn">إصلاح ملف المضيفين</a>
+        </div>
+    </div>
+</body>
+</html>

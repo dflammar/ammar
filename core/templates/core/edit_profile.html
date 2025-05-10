@@ -1,0 +1,172 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white py-3 border-0">
+                    <h3 class="mb-0 fw-bold">تعديل الملف الشخصي</h3>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <!-- Profile Image -->
+                            <div class="col-md-4 mb-4 text-center">
+                                <div class="mb-3">
+                                    {% if user.student.profile_image %}
+                                        <img src="{{ user.student.profile_image.url }}" alt="{{ user.get_full_name }}" class="rounded-circle img-fluid" style="width: 150px; height: 150px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto" style="width: 150px; height: 150px; font-size: 60px;">
+                                            {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="id_profile_image" class="form-label">صورة الملف الشخصي</label>
+                                    <input type="file" name="profile_image" id="id_profile_image" class="form-control {% if form.profile_image.errors %}is-invalid{% endif %}">
+                                    {% if form.profile_image.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.profile_image.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">اختياري: ارفع صورة شخصية</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Personal Information -->
+                            <div class="col-md-8">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="id_first_name" class="form-label">الاسم الأول</label>
+                                        <input type="text" name="first_name" id="id_first_name" value="{{ form.first_name.value|default:user.first_name }}" class="form-control {% if form.first_name.errors %}is-invalid{% endif %}">
+                                        {% if form.first_name.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.first_name.errors %}
+                                            {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="id_last_name" class="form-label">الاسم الأخير</label>
+                                        <input type="text" name="last_name" id="id_last_name" value="{{ form.last_name.value|default:user.last_name }}" class="form-control {% if form.last_name.errors %}is-invalid{% endif %}">
+                                        {% if form.last_name.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.last_name.errors %}
+                                            {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="id_email" class="form-label">البريد الإلكتروني</label>
+                                    <input type="email" name="email" id="id_email" value="{{ form.email.value|default:user.email }}" class="form-control {% if form.email.errors %}is-invalid{% endif %}">
+                                    {% if form.email.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.email.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="id_phone_number" class="form-label">رقم الهاتف</label>
+                                    <input type="text" name="phone_number" id="id_phone_number" value="{{ form.phone_number.value|default:user.username }}" class="form-control {% if form.phone_number.errors %}is-invalid{% endif %}" readonly>
+                                    {% if form.phone_number.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.phone_number.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">لا يمكن تغيير رقم الهاتف</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="id_bio" class="form-label">نبذة شخصية</label>
+                                    <textarea name="bio" id="id_bio" rows="3" class="form-control {% if form.bio.errors %}is-invalid{% endif %}">{{ form.bio.value|default:user.student.bio }}</textarea>
+                                    {% if form.bio.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.bio.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">اختياري: اكتب نبذة قصيرة عن نفسك</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Password Change Section -->
+                        <h4 class="mb-3">تغيير كلمة المرور</h4>
+                        <div class="mb-3">
+                            <label for="id_current_password" class="form-label">كلمة المرور الحالية</label>
+                            <input type="password" name="current_password" id="id_current_password" class="form-control {% if form.current_password.errors %}is-invalid{% endif %}">
+                            {% if form.current_password.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.current_password.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">اتركها فارغة إذا كنت لا تريد تغيير كلمة المرور</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="id_new_password1" class="form-label">كلمة المرور الجديدة</label>
+                                <input type="password" name="new_password1" id="id_new_password1" class="form-control {% if form.new_password1.errors %}is-invalid{% endif %}">
+                                {% if form.new_password1.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.new_password1.errors %}
+                                    {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="id_new_password2" class="form-label">تأكيد كلمة المرور الجديدة</label>
+                                <input type="password" name="new_password2" id="id_new_password2" class="form-control {% if form.new_password2.errors %}is-invalid{% endif %}">
+                                {% if form.new_password2.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.new_password2.errors %}
+                                    {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{% url 'core:profile' %}" class="btn btn-outline-secondary me-md-2">إلغاء</a>
+                            <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

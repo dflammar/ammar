@@ -1,0 +1,306 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}لوحة التحكم - منصة التعليم{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <div class="container">
+        <!-- Admin Header -->
+        <div class="admin-header bg-primary text-white p-4 rounded-4 mb-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="h2 mb-2">لوحة التحكم</h1>
+                    <p class="mb-0">مرحباً {{ request.user.first_name }} {{ request.user.last_name }}، يمكنك إدارة المنصة من هنا</p>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <div class="d-flex justify-content-lg-end">
+                        <a href="{% url 'core:create_assignment' %}" class="btn btn-light me-2">
+                            <i class="fas fa-plus-circle me-1"></i> إضافة واجب
+                        </a>
+                        <a href="{% url 'admin:index' %}" class="btn btn-light">
+                            <i class="fas fa-cog me-1"></i> الإدارة المتقدمة
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-4">
+                <div class="dashboard-card text-center">
+                    <div class="dashboard-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="dashboard-value">{{ total_users }}</div>
+                    <div class="dashboard-label">عدد المستخدمين</div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="dashboard-card text-center">
+                    <div class="dashboard-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div class="dashboard-value">{{ total_videos }}</div>
+                    <div class="dashboard-label">عدد الفيديوهات</div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="dashboard-card text-center">
+                    <div class="dashboard-icon">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <div class="dashboard-value">{{ total_views }}</div>
+                    <div class="dashboard-label">عدد المشاهدات</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <h2 class="h4 mb-3">الإجراءات السريعة</h2>
+        <div class="quick-actions mb-5">
+            <div class="quick-action-card">
+                <div class="quick-action-icon">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="quick-action-title">إدارة الصفوف</div>
+                <p class="quick-action-description">إضافة وتعديل الصفوف الدراسية</p>
+                <a href="/admin/core/grade/" class="btn btn-sm btn-primary mt-2">فتح</a>
+            </div>
+            <div class="quick-action-card">
+                <div class="quick-action-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="quick-action-title">إدارة الكورسات</div>
+                <p class="quick-action-description">إضافة وتعديل الكورسات</p>
+                <a href="/admin/core/course/" class="btn btn-sm btn-primary mt-2">فتح</a>
+            </div>
+            <div class="quick-action-card">
+                <div class="quick-action-icon">
+                    <i class="fas fa-list-alt"></i>
+                </div>
+                <div class="quick-action-title">إدارة الدروس</div>
+                <p class="quick-action-description">إضافة وتعديل الدروس</p>
+                <a href="{% url 'admin:core_lesson_changelist' %}" class="btn btn-sm btn-primary mt-2">فتح</a>
+            </div>
+            <div class="quick-action-card">
+                <div class="quick-action-icon">
+                    <i class="fas fa-video"></i>
+                </div>
+                <div class="quick-action-title">إدارة الفيديوهات</div>
+                <p class="quick-action-description">إضافة وتعديل الفيديوهات</p>
+                <a href="/admin/core/video/" class="btn btn-sm btn-primary mt-2">فتح</a>
+            </div>
+            <div class="quick-action-card">
+                <div class="quick-action-icon">
+                    <i class="fas fa-key"></i>
+                </div>
+                <div class="quick-action-title">إدارة أكواد الوصول</div>
+                <p class="quick-action-description">إنشاء وإدارة أكواد الوصول</p>
+                <div class="d-flex gap-2 mt-2">
+                    <a href="/admin/core/accesscode/" class="btn btn-sm btn-primary">فتح</a>
+                    <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#generateBulkCodesModal">
+                        <i class="fas fa-key me-1"></i> إنشاء 100 كود
+                    </button>
+                </div>
+            </div>
+            <div class="quick-action-card">
+                <div class="quick-action-icon">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <div class="quick-action-title">إدارة المدرسين</div>
+                <p class="quick-action-description">إضافة وتعديل المدرسين</p>
+                <a href="/admin/core/teacher/" class="btn btn-sm btn-primary mt-2">فتح</a>
+            </div>
+        </div>
+
+        <!-- Add Teacher Form -->
+        <div class="card shadow-sm mb-5">
+            <div class="card-header bg-light">
+                <h3 class="h5 mb-0">إضافة مدرس جديد</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'core:add_teacher' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">الاسم</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="name_ar" class="form-label">الاسم بالعربية</label>
+                            <input type="text" class="form-control" id="name_ar" name="name_ar" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bio" class="form-label">نبذة عن المدرس</label>
+                        <textarea class="form-control" id="bio" name="bio" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="courses" class="form-label">الكورسات</label>
+                        <select class="form-select" id="courses" name="courses" multiple>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}">{{ course.name_ar }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">اختر الكورسات التي يدرسها المدرس</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="profile_image" class="form-label">صورة المدرس</label>
+                        <input type="file" class="form-control" id="profile_image" name="profile_image">
+                    </div>
+                    <button type="submit" class="btn btn-primary">إضافة المدرس</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <h2 class="h4 mb-3">آخر النشاطات</h2>
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>المستخدم</th>
+                                <th>النشاط</th>
+                                <th>التاريخ</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for view in recent_views %}
+                            <tr>
+                                <td>{{ view.user.get_full_name }}</td>
+                                <td>شاهد فيديو "{{ view.video.title_ar }}"</td>
+                                <td>{{ view.viewed_at|date:"j F Y, g:i a" }}</td>
+                                <td>
+                                    <a href="{% url 'core:video_detail' view.video.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye me-1"></i> عرض
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4">لا توجد نشاطات حديثة</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    <!-- Bulk Codes Generation Modal -->
+    <div class="modal fade" id="generateBulkCodesModal" tabindex="-1" aria-labelledby="generateBulkCodesModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="generateBulkCodesModalLabel">إنشاء أكواد وصول متعددة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" action="{% url 'core:generate_bulk_access_codes' %}" id="bulkCodesForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="count" class="form-label">عدد الأكواد</label>
+                            <input type="number" class="form-control" id="count" name="count" value="100" min="1" max="1000">
+                            <div class="form-text">عدد الأكواد المراد إنشاؤها (الحد الأقصى 1000)</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="code_type" class="form-label">نوع الكود</label>
+                            <select class="form-select" id="code_type" name="code_type">
+                                <option value="video">كود فيديو</option>
+                                <option value="course">كود كورس</option>
+                                <option value="single">كود فيديو واحد فقط</option>
+                            </select>
+                            <div class="form-text">اختر نوع الكود الذي تريد إنشاءه</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="video" class="form-label">الفيديو (اختياري)</label>
+                            <select class="form-select" id="video" name="video">
+                                <option value="">-- اختر فيديو --</option>
+                                {% for course in courses %}
+                                    <optgroup label="{{ course.name_ar }}">
+                                        {% for lesson in course.lesson_set.all %}
+                                            {% for video in lesson.video_set.all %}
+                                                <option value="{{ video.id }}">{{ video.title_ar }}</option>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">اختر الفيديو الذي سيتم ربط الأكواد به</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="course" class="form-label">الكورس (اختياري)</label>
+                            <select class="form-select" id="course" name="course">
+                                <option value="">-- اختر كورس --</option>
+                                {% for course in courses %}
+                                    <option value="{{ course.id }}">{{ course.name_ar }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">اختر الكورس الذي سيتم ربط الأكواد به</div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <ul class="mb-0">
+                                <li><strong>كود فيديو:</strong> يفتح فيديو محدد فقط ويمكن استخدامه مرة واحدة.</li>
+                                <li><strong>كود كورس:</strong> يفتح أي فيديو في الكورس ويمكن استخدامه لجميع فيديوهات الكورس.</li>
+                                <li><strong>كود فيديو واحد فقط:</strong> يفتح فيديو واحد محدد فقط ولا يمكن استخدامه لفيديوهات أخرى.</li>
+                            </ul>
+                            <p class="mt-2 mb-0">يجب اختيار إما فيديو أو كورس. إذا تم اختيار كلاهما، سيتم استخدام الفيديو.</p>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" form="bulkCodesForm" class="btn btn-primary">إنشاء الأكواد</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add AJAX functionality for teacher form
+        const teacherForm = document.querySelector('form[action*="add-teacher"]');
+        if (teacherForm) {
+            teacherForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const formData = new FormData(this);
+
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('تم إضافة المدرس بنجاح!');
+                        this.reset();
+                    } else {
+                        alert('حدث خطأ: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('حدث خطأ أثناء إضافة المدرس');
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

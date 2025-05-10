@@ -1,0 +1,360 @@
+{% extends 'core/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-4">
+                    {% if secret_code_required or access_code_required %}
+                        <!-- Access Code Form -->
+                        <div class="text-center mb-4">
+                            <h4 class="mb-3">أدخل كود الوصول لمشاهدة الفيديو</h4>
+                            <form method="post" class="d-flex justify-content-center gap-2">
+                                {% csrf_token %}
+                                <input type="text" name="access_code" class="form-control form-control-lg" style="max-width: 300px;" placeholder="أدخل كود الوصول" required>
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-unlock me-2"></i> فتح الفيديو
+                                </button>
+                            </form>
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }} mt-3">
+                                        {{ message }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        {% if video.video_type == 'youtube' %}
+                            <!-- YouTube Video Player with Protection Layer -->
+                            <div class="position-relative">
+                                <div id="youtube-iframe"></div>
+                                <!-- طبقة حماية لمنع النقر المباشر على الفيديو -->
+                                <div id="video-protection-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"></div>
+                            </div>
+
+                            <!-- Custom Fullscreen Container for YouTube -->
+                            <div id="custom-fullscreen" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; z-index: 9999999;">
+                                <div id="fullscreen-video-container" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; height: 80%;"></div>
+                                <!-- طبقة حماية لمنع النقر المباشر على الفيديو في وضع ملء الشاشة -->
+                                <div id="fs-protection-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"></div>
+                                <button id="fs-play-btn" class="btn btn-primary btn-lg" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 20;">
+                                    <i class="fas fa-play fa-2x"></i>
+                                </button>
+                                <button id="fs-exit-btn" class="btn btn-danger btn-lg" style="position: absolute; top: 20px; right: 20px; z-index: 20;">
+                                    <i class="fas fa-times fa-2x"></i>
+                                </button>
+                            </div>
+
+                            <!-- Video Controls for YouTube -->
+                            <div class="d-flex justify-content-center mt-3 gap-3">
+                                <button id="play-button" class="btn btn-primary btn-lg px-4 py-2 fw-bold">
+                                    <i class="fas fa-play me-2"></i> تشغيل الفيديو
+                                </button>
+                                <button id="fullscreen-button" class="btn btn-secondary btn-lg px-4 py-2 fw-bold">
+                                    <i class="fas fa-expand me-2"></i> تكبير الشاشة
+                                </button>
+                            </div>
+                        {% else %}
+                            <!-- Regular Video Player with Protection Layer -->
+                            <div class="position-relative">
+                                <video id="video-player" controlsList="nodownload" class="w-100" style="max-height: 600px;">
+                                    <source src="{% url 'core:video_stream' video.id %}" type="video/mp4">
+                                    متصفحك لا يدعم تشغيل الفيديو.
+                                </video>
+                                <!-- طبقة حماية لمنع النقر المباشر على الفيديو -->
+                                <div id="regular-video-protection-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"></div>
+
+                                <!-- منع النقر اليمين على الفيديو -->
+                                <script>
+                                    document.addEventListener('contextmenu', function(e) {
+                                        e.preventDefault();
+                                        return false;
+                                    });
+                                </script>
+                            </div>
+
+                            <!-- Custom Video Controls for Regular Video -->
+                            <div class="d-flex justify-content-center mt-3 gap-3">
+                                <button id="regular-play-button" class="btn btn-primary btn-lg px-4 py-2 fw-bold">
+                                    <i class="fas fa-play me-2"></i> تشغيل الفيديو
+                                </button>
+                                <button id="video-fullscreen-btn" class="btn btn-secondary btn-lg px-4 py-2 fw-bold" onclick="enableVideoFullScreenWithOverlay()">
+                                    <i class="fas fa-expand me-2"></i> تكبير الشاشة
+                                </button>
+                            </div>
+
+                            <!-- Script for Regular Video Controls and Fullscreen -->
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const videoPlayer = document.getElementById('video-player');
+                                    const playButton = document.getElementById('regular-play-button');
+                                    const protectionLayer = document.getElementById('regular-video-protection-layer');
+
+                                    // إضافة وظيفة للنقر على طبقة الحماية لتشغيل الفيديو
+                                    if (protectionLayer) {
+                                        protectionLayer.addEventListener('click', function(e) {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+
+                                            // تبديل حالة التشغيل/الإيقاف
+                                            if (videoPlayer.paused) {
+                                                videoPlayer.play();
+                                                updateRegularPlayButton(true);
+                                            } else {
+                                                videoPlayer.pause();
+                                                updateRegularPlayButton(false);
+                                            }
+
+                                            return false;
+                                        });
+
+                                        // منع النقر بالزر الأيمن
+                                        protectionLayer.addEventListener('contextmenu', function(e) {
+                                            e.preventDefault();
+                                            return false;
+                                        });
+                                    }
+
+                                    // إضافة وظيفة لزر التشغيل
+                                    if (playButton) {
+                                        playButton.addEventListener('click', function() {
+                                            if (videoPlayer.paused) {
+                                                videoPlayer.play();
+                                                updateRegularPlayButton(true);
+                                            } else {
+                                                videoPlayer.pause();
+                                                updateRegularPlayButton(false);
+                                            }
+                                        });
+                                    }
+
+                                    // تحديث زر التشغيل
+                                    function updateRegularPlayButton(isPlaying) {
+                                        if (playButton) {
+                                            playButton.innerHTML = isPlaying ?
+                                                '<i class="fas fa-pause me-2"></i> إيقاف مؤقت' :
+                                                '<i class="fas fa-play me-2"></i> تشغيل الفيديو';
+                                        }
+                                    }
+                                });
+
+                                function enableVideoFullScreenWithOverlay() {
+                                    const videoPlayer = document.getElementById('video-player');
+                                    if (videoPlayer.requestFullscreen) {
+                                        videoPlayer.requestFullscreen();
+                                    } else if (videoPlayer.webkitRequestFullscreen) {
+                                        videoPlayer.webkitRequestFullscreen();
+                                    } else if (videoPlayer.msRequestFullscreen) {
+                                        videoPlayer.msRequestFullscreen();
+                                    }
+                                }
+                            </script>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    {% if video.video_type == 'youtube' %}
+    // تهيئة متغيرات
+    let player;
+    let fsPlayer;
+    let isFullscreen = false;
+
+    // دالة الدخول إلى وضع ملء الشاشة المخصص
+    function enterCustomFullscreen() {
+        const customFullscreen = document.getElementById('custom-fullscreen');
+        if (!customFullscreen) return;
+
+        customFullscreen.style.display = 'block';
+
+        // الحصول على الوقت الحالي من المشغل الأصلي
+        let currentTime = 0;
+        if (player && typeof player.getCurrentTime === 'function') {
+            currentTime = player.getCurrentTime();
+        }
+
+        // إنشاء مشغل جديد في وضع ملء الشاشة
+        fsPlayer = new YT.Player('fullscreen-video-container', {
+            videoId: "{{ video.youtube_id }}",
+            height: '100%',
+            width: '100%',
+            playerVars: {
+                'autoplay': 1,
+                'start': Math.floor(currentTime),
+                'rel': 0,
+                'modestbranding': 1,
+                'showinfo': 0,
+                'iv_load_policy': 3,
+                'fs': 0,
+                'color': 'white',
+                'disablekb': 1,
+                'controls': 0,
+                'playsinline': 1,
+                'cc_load_policy': 0
+            },
+            events: {
+                'onReady': function(event) {
+                    event.target.playVideo();
+                    const fsPlayBtn = document.getElementById('fs-play-btn');
+                    if (fsPlayBtn) {
+                        fsPlayBtn.innerHTML = '<i class="fas fa-pause fa-2x"></i>';
+                    }
+                }
+            }
+        });
+
+        isFullscreen = true;
+    }
+
+    // دالة الخروج من وضع ملء الشاشة المخصص
+    function exitCustomFullscreen() {
+        const customFullscreen = document.getElementById('custom-fullscreen');
+        if (!customFullscreen) return;
+
+        customFullscreen.style.display = 'none';
+        document.getElementById('fullscreen-video-container').innerHTML = '';
+        fsPlayer = null;
+        isFullscreen = false;
+    }
+
+    // تهيئة YouTube API
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('youtube-iframe', {
+            videoId: "{{ video.youtube_id }}",
+            height: '100%',
+            width: '100%',
+            playerVars: {
+                'rel': 0,
+                'modestbranding': 1,
+                'showinfo': 0,
+                'iv_load_policy': 3,
+                'fs': 0,
+                'color': 'white',
+                'disablekb': 1,
+                'controls': 0,
+                'playsinline': 1,
+                'cc_load_policy': 0
+            },
+            events: {
+                onReady: function(event) {
+                    console.log("YouTube player ready");
+
+                    // إضافة وظائف للأزرار
+                    const playButton = document.getElementById('play-button');
+                    const fullscreenButton = document.getElementById('fullscreen-button');
+                    const fsPlayBtn = document.getElementById('fs-play-btn');
+                    const fsExitBtn = document.getElementById('fs-exit-btn');
+                    const protectionLayer = document.getElementById('video-protection-layer');
+                    const fsProtectionLayer = document.getElementById('fs-protection-layer');
+
+                    // إضافة وظيفة للنقر على طبقة الحماية لتشغيل الفيديو
+                    if (protectionLayer) {
+                        protectionLayer.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            // تبديل حالة التشغيل/الإيقاف
+                            if (player.getPlayerState() === YT.PlayerState.PLAYING) {
+                                player.pauseVideo();
+                                updatePlayButton(false);
+                            } else {
+                                player.playVideo();
+                                updatePlayButton(true);
+                            }
+
+                            return false;
+                        });
+
+                        // منع النقر بالزر الأيمن
+                        protectionLayer.addEventListener('contextmenu', function(e) {
+                            e.preventDefault();
+                            return false;
+                        });
+                    }
+
+                    // إضافة وظيفة للنقر على طبقة الحماية في وضع ملء الشاشة
+                    if (fsProtectionLayer) {
+                        fsProtectionLayer.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            // تبديل حالة التشغيل/الإيقاف
+                            if (fsPlayer && fsPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                                fsPlayer.pauseVideo();
+                                fsPlayBtn.innerHTML = '<i class="fas fa-play fa-2x"></i>';
+                            } else if (fsPlayer) {
+                                fsPlayer.playVideo();
+                                fsPlayBtn.innerHTML = '<i class="fas fa-pause fa-2x"></i>';
+                            }
+
+                            return false;
+                        });
+
+                        // منع النقر بالزر الأيمن
+                        fsProtectionLayer.addEventListener('contextmenu', function(e) {
+                            e.preventDefault();
+                            return false;
+                        });
+                    }
+
+                    if (playButton) {
+                        playButton.addEventListener('click', function() {
+                            player.playVideo();
+                            updatePlayButton(true);
+                        });
+                    }
+
+                    if (fullscreenButton) {
+                        fullscreenButton.addEventListener('click', function() {
+                            enterCustomFullscreen();
+                        });
+                    }
+
+                    if (fsPlayBtn) {
+                        fsPlayBtn.addEventListener('click', function() {
+                            if (fsPlayer) {
+                                if (fsPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                                    fsPlayer.pauseVideo();
+                                    fsPlayBtn.innerHTML = '<i class="fas fa-play fa-2x"></i>';
+                                } else {
+                                    fsPlayer.playVideo();
+                                    fsPlayBtn.innerHTML = '<i class="fas fa-pause fa-2x"></i>';
+                                }
+                            }
+                        });
+                    }
+
+                    if (fsExitBtn) {
+                        fsExitBtn.addEventListener('click', function() {
+                            exitCustomFullscreen();
+                        });
+                    }
+                }
+            }
+        });
+    }
+
+    // تحديث زر التشغيل
+    function updatePlayButton(isPlaying) {
+        const playButton = document.getElementById('play-button');
+        if (playButton) {
+            playButton.innerHTML = isPlaying ?
+                '<i class="fas fa-pause me-2"></i> إيقاف مؤقت' :
+                '<i class="fas fa-play me-2"></i> تشغيل الفيديو';
+        }
+    }
+    {% endif %}
+</script>
+{% if video.video_type == 'youtube' %}
+<!-- Load YouTube API -->
+<script src="https://www.youtube.com/iframe_api"></script>
+{% endif %}
+{% endblock %}

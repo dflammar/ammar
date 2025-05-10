@@ -1,0 +1,133 @@
+{% extends 'core/base.html' %}
+{% load i18n %}
+
+{% block title %}{{ teacher.name_ar }} - منصة التعليم{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card hover-card">
+                <div class="text-center p-3">
+                    {% if teacher.photo %}
+                        <img src="{{ teacher.photo.url }}" class="rounded-circle img-thumbnail" alt="{{ teacher.name_ar }}" style="width: 200px; height: 200px; object-fit: cover;">
+                    {% else %}
+                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded-circle mx-auto" style="width: 200px; height: 200px;">
+                            <i class="fas fa-user-tie fa-5x"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-body text-center">
+                    <h3 class="card-title">{{ teacher.name_ar }}</h3>
+                    <p class="text-muted">{{ teacher.specialization_ar }}</p>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-center mb-2">
+                            {% with ''|center:teacher.average_rating as range %}
+                                {% for _ in range %}
+                                    <i class="fas fa-star text-warning fa-2x"></i>
+                                {% endfor %}
+                            {% endwith %}
+                            {% with ''|center:5|slice:teacher.average_rating as range %}
+                                {% for _ in range %}
+                                    <i class="far fa-star text-warning fa-2x"></i>
+                                {% endfor %}
+                            {% endwith %}
+                        </div>
+                        <p class="lead mb-0">{{ teacher.average_rating|floatformat:1 }} / 5</p>
+                        <small class="text-muted">{{ teacher.total_reviews }} تقييم</small>
+                    </div>
+                    
+                    {% if not user_has_reviewed %}
+                        <a href="{% url 'core:teacher_review' teacher.id %}" class="btn btn-primary w-100">
+                            <i class="fas fa-star me-1"></i> قيّم هذا المعلم
+                        </a>
+                    {% else %}
+                        <a href="{% url 'core:teacher_review' teacher.id %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-edit me-1"></i> تعديل تقييمك
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card hover-card mt-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-book me-2"></i> الكورسات</h5>
+                </div>
+                <div class="card-body">
+                    {% if courses %}
+                        <ul class="list-group list-group-flush">
+                            {% for course in courses %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ course.name_ar }}
+                                    <a href="{% url 'core:course_detail' course.id %}" class="btn btn-sm btn-outline-primary">عرض</a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted text-center mb-0">لا توجد كورسات متاحة حالياً</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-8">
+            <div class="card hover-card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> نبذة عن المعلم</h5>
+                </div>
+                <div class="card-body">
+                    {% if teacher.bio_ar %}
+                        <p>{{ teacher.bio_ar|linebreaks }}</p>
+                    {% else %}
+                        <p class="text-muted text-center">لا توجد معلومات متاحة</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card hover-card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-comments me-2"></i> التقييمات ({{ reviews.count }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if reviews %}
+                        {% for review in reviews %}
+                            <div class="mb-4 {% if review.student == user %}bg-light p-3 rounded{% endif %}">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">{{ review.student.username }}</h6>
+                                            <small class="text-muted">{{ review.created_at|date:"d/m/Y" }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="text-warning">
+                                        {% with ''|center:review.rating as range %}
+                                            {% for _ in range %}
+                                                <i class="fas fa-star"></i>
+                                            {% endfor %}
+                                        {% endwith %}
+                                        {% with ''|center:5|slice:review.rating as range %}
+                                            {% for _ in range %}
+                                                <i class="far fa-star"></i>
+                                            {% endfor %}
+                                        {% endwith %}
+                                    </div>
+                                </div>
+                                {% if review.comment %}
+                                    <p class="mb-0">{{ review.comment|linebreaks }}</p>
+                                {% endif %}
+                            </div>
+                            {% if not forloop.last %}<hr>{% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">لا توجد تقييمات حتى الآن. كن أول من يقيم!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

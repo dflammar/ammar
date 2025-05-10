@@ -1,0 +1,71 @@
+{% extends 'core/base.html' %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} - منصة التعليم{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="gradient-bg p-4 rounded-3 text-center mb-4">
+                <h1 class="display-5 fw-bold">{% trans "تقييم المعلمين" %}</h1>
+                <p class="lead">{% trans "قم بتقييم المعلمين ومشاهدة آراء الطلاب الآخرين" %}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {% if teachers %}
+            {% for teacher in teachers %}
+                <div class="col-md-4 mb-4">
+                    <div class="card hover-card h-100">
+                        <div class="position-relative">
+                            {% if teacher.photo %}
+                                <img src="{{ teacher.photo.url }}" class="card-img-top" alt="{{ teacher.name_ar }}" style="height: 200px; object-fit: cover;">
+                            {% else %}
+                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="fas fa-user-tie fa-4x"></i>
+                                </div>
+                            {% endif %}
+                            <div class="position-absolute bottom-0 start-0 w-100 p-2 bg-dark bg-opacity-75 text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="mb-0">{{ teacher.name_ar }}</h5>
+                                        <small>{{ teacher.specialization_ar }}</small>
+                                    </div>
+                                    <div class="text-warning">
+                                        {% with ''|center:teacher.average_rating as range %}
+                                            {% for _ in range %}
+                                                <i class="fas fa-star"></i>
+                                            {% endfor %}
+                                        {% endwith %}
+                                        {% with ''|center:5|slice:teacher.average_rating as range %}
+                                            {% for _ in range %}
+                                                <i class="far fa-star"></i>
+                                            {% endfor %}
+                                        {% endwith %}
+                                        <small class="text-white ms-1">({{ teacher.total_reviews }})</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">{{ teacher.bio_ar|truncatechars:100 }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-primary rounded-pill">{{ teacher.courses.count }} كورس</span>
+                                <a href="{% url 'core:teacher_detail' teacher.id %}" class="btn btn-outline-primary">عرض التفاصيل</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> {% trans "لا يوجد معلمين متاحين حالياً" %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

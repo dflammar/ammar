@@ -1,0 +1,100 @@
+{% extends 'core/base.html' %}
+{% load i18n %}
+
+{% block title %}تعديل الملف الشخصي - منصة التعليم{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'core:teacher_dashboard' %}">لوحة تحكم المعلم</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">تعديل الملف الشخصي</li>
+                </ol>
+            </nav>
+            
+            <div class="gradient-bg p-4 rounded-3 text-center mb-4">
+                <h1 class="display-5 fw-bold">{% trans "تعديل الملف الشخصي" %}</h1>
+                <p class="lead">قم بتحديث معلوماتك الشخصية</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <!-- Profile Image -->
+                            <div class="col-md-4 mb-4 text-center">
+                                <div class="mb-3">
+                                    {% if teacher.photo %}
+                                        <img src="{{ teacher.photo.url }}" alt="{{ teacher.name_ar }}" class="rounded-circle img-fluid" style="width: 150px; height: 150px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto" style="width: 150px; height: 150px; font-size: 60px;">
+                                            {{ teacher.name|first|upper }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="id_photo" class="form-label">صورة الملف الشخصي</label>
+                                    <input type="file" name="photo" id="id_photo" class="form-control">
+                                    <div class="form-text">اختر صورة جديدة للملف الشخصي (اختياري)</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Personal Info -->
+                            <div class="col-md-8">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="id_name" class="form-label">الاسم (بالإنجليزية)</label>
+                                        <input type="text" name="name" id="id_name" class="form-control" value="{{ teacher.name }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="id_name_ar" class="form-label">الاسم (بالعربية)</label>
+                                        <input type="text" name="name_ar" id="id_name_ar" class="form-control" value="{{ teacher.name_ar }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="id_specialization" class="form-label">التخصص (بالإنجليزية)</label>
+                                        <input type="text" name="specialization" id="id_specialization" class="form-control" value="{{ teacher.specialization }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="id_specialization_ar" class="form-label">التخصص (بالعربية)</label>
+                                        <input type="text" name="specialization_ar" id="id_specialization_ar" class="form-control" value="{{ teacher.specialization_ar }}">
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="id_bio" class="form-label">نبذة عن المعلم (بالإنجليزية)</label>
+                                    <textarea name="bio" id="id_bio" class="form-control" rows="3">{{ teacher.bio }}</textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="id_bio_ar" class="form-label">نبذة عن المعلم (بالعربية)</label>
+                                    <textarea name="bio_ar" id="id_bio_ar" class="form-control" rows="3">{{ teacher.bio_ar }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> حفظ التغييرات
+                            </button>
+                            <a href="{% url 'core:teacher_dashboard' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

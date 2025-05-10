@@ -1,0 +1,152 @@
+{% extends 'core/base.html' %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} - منصة التعليم{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <div class="text-center">
+            <h1 class="display-4 fw-bold mb-4">الإشعارات</h1>
+            <p class="lead mb-0">تابع آخر التحديثات والإشعارات الخاصة بك</p>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-primary text-white p-4">
+                    <h3 class="mb-0"><i class="fas fa-bell me-2"></i> الإشعارات</h3>
+                </div>
+                <div class="card-body p-0">
+                    {% if notifications %}
+                        <div class="list-group list-group-flush">
+                            {% for notification in notifications %}
+                                <div class="list-group-item notification-item p-3 {% if not notification.is_read %}unread{% endif %}" data-id="{{ notification.id }}">
+                                    <div class="d-flex align-items-center">
+                                        <div class="notification-icon me-3">
+                                            <i class="{{ notification.icon }} fa-2x text-{{ notification.notification_type }}"></i>
+                                        </div>
+                                        <div class="notification-content flex-grow-1">
+                                            <h5 class="mb-1">{{ notification.title }}</h5>
+                                            <p class="mb-1">{{ notification.message }}</p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">{{ notification.created_at|date:"j F Y - g:i a" }}</small>
+                                                {% if notification.url %}
+                                                    <a href="{{ notification.url }}" class="btn btn-sm btn-primary">
+                                                        <i class="fas fa-external-link-alt me-1"></i> فتح الرابط
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% if not notification.is_read %}
+                                            <button class="btn btn-sm btn-outline-primary mark-read-btn ms-2" data-id="{{ notification.id }}">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center p-5">
+                            <div class="empty-state">
+                                <i class="fas fa-bell-slash fa-4x text-muted mb-3"></i>
+                                <h4>لا توجد إشعارات</h4>
+                                <p class="text-muted">ليس لديك أي إشعارات في الوقت الحالي</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .notification-item {
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    
+    .notification-item:hover {
+        background-color: rgba(0,0,0,0.02);
+    }
+    
+    .notification-item.unread {
+        border-left-color: var(--primary-color);
+        background-color: rgba(var(--primary-color-rgb), 0.05);
+    }
+    
+    .notification-icon {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    .empty-state {
+        padding: 30px;
+        color: var(--gray-color);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mark notification as read
+        const markReadButtons = document.querySelectorAll('.mark-read-btn');
+        markReadButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const notificationId = this.getAttribute('data-id');
+                const notificationItem = document.querySelector(`.notification-item[data-id="${notificationId}"]`);
+                
+                // Send AJAX request to mark as read
+                fetch(`/notifications/${notificationId}/mark-read/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update UI
+                        notificationItem.classList.remove('unread');
+                        button.remove();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error marking notification as read:', error);
+                });
+            });
+        });
+        
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}

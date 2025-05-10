@@ -1,0 +1,197 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ course.name_ar }} - منصة التعليم{% endblock %}
+
+{% block content %}
+<!-- Course Header -->
+<div class="course-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb bg-transparent mb-4">
+                <li class="breadcrumb-item"><a href="{% url 'core:grades' %}" class="text-white">الصفوف الدراسية</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'core:grade_detail' course.grade.id %}" class="text-white">{{ course.grade.name_ar }}</a></li>
+                <li class="breadcrumb-item active text-white-50" aria-current="page">{{ course.name_ar }}</li>
+            </ol>
+        </nav>
+
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="course-title">{{ course.name_ar }}</h1>
+
+                <div class="course-meta">
+                    <div class="course-meta-item">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>{{ course.grade.name_ar }}</span>
+                    </div>
+                    <div class="course-meta-item">
+                        <i class="fas fa-book"></i>
+                        <span>{{ lessons|length }} درس</span>
+                    </div>
+                    <div class="course-meta-item">
+                        <i class="fas fa-clock"></i>
+                        <span>مدة الكورس: 10 ساعات</span>
+                    </div>
+                </div>
+
+                {% if course.description %}
+                    <p class="lead text-white-50">{{ course.description }}</p>
+                {% endif %}
+
+                <div class="course-actions">
+                    <a href="{% url 'core:grade_detail' course.grade.id %}" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-right ml-1"></i> العودة إلى {{ course.grade.name_ar }}
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 d-none d-lg-block">
+                {% if course.thumbnail %}
+                    <img src="{{ course.thumbnail.url }}" alt="{{ course.name_ar }}" class="img-fluid rounded-4 shadow">
+                {% else %}
+                    <div class="bg-white rounded-4 shadow p-5 text-center">
+                        <i class="fas fa-book fa-5x text-primary"></i>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Course Content -->
+<div class="container mt-n5 mb-5">
+    <div class="card shadow-lg border-0 rounded-4">
+        <div class="card-body p-4">
+            <!-- Assignments Section -->
+            {% if assignments %}
+            <div class="assignments-section mb-5">
+                <h2 class="text-center mb-4">الواجبات <span>والامتحانات</span></h2>
+                <div class="row g-4">
+                    {% for assignment in assignments %}
+                    <div class="col-md-6">
+                        <div class="card h-100 border-0 shadow-sm hover-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    {% if assignment.assignment_type == 'homework' %}
+                                    <div class="assignment-icon bg-primary">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                    {% elif assignment.assignment_type == 'exam' %}
+                                    <div class="assignment-icon bg-danger">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                    {% elif assignment.assignment_type == 'quiz' %}
+                                    <div class="assignment-icon bg-success">
+                                        <i class="fas fa-question"></i>
+                                    </div>
+                                    {% else %}
+                                    <div class="assignment-icon bg-info">
+                                        <i class="fas fa-tasks"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="ms-3">
+                                        <h5 class="card-title mb-0">{{ assignment.title_ar }}</h5>
+                                        <small class="text-muted">{{ assignment.get_assignment_type_display }}</small>
+                                    </div>
+                                </div>
+
+                                {% if assignment.description %}
+                                <p class="card-text">{{ assignment.description|truncatechars:100 }}</p>
+                                {% endif %}
+
+                                {% if assignment.due_date %}
+                                <div class="mb-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar-alt me-1"></i> تاريخ الاستحقاق: {{ assignment.due_date|date:"j F Y, g:i a" }}
+                                    </small>
+                                </div>
+                                {% endif %}
+
+                                <div class="d-flex mt-3">
+                                    {% if assignment.google_sheet_url %}
+                                    <a href="{{ assignment.google_sheet_url }}" target="_blank" class="btn btn-sm btn-outline-primary me-2">
+                                        <i class="fas fa-table me-1"></i> Google Sheets
+                                    </a>
+                                    {% endif %}
+
+                                    {% if assignment.google_form_url %}
+                                    <a href="{{ assignment.google_form_url }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-edit me-1"></i> Google Forms
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="course-content">
+                <h2 class="text-center mb-4">محتوى <span>الكورس</span></h2>
+
+                {% if lessons %}
+                    <div class="accordion" id="courseAccordion">
+                        {% for lesson in lessons %}
+                            <div class="accordion-item">
+                                <div class="accordion-header" id="heading{{ lesson.id }}" onclick="toggleAccordion('collapse{{ lesson.id }}')">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-book-open me-2"></i>
+                                        <span>{{ lesson.title_ar }}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-primary rounded-pill me-3">
+                                            {{ lesson.videos.count }} فيديو
+                                        </span>
+                                        <i class="fas fa-chevron-down icon"></i>
+                                    </div>
+                                </div>
+                                <div id="collapse{{ lesson.id }}" class="accordion-content">
+                                    {% for video in lesson.videos.all %}
+                                        <div class="lesson-item">
+                                            <div class="lesson-icon video">
+                                                <i class="fas fa-play"></i>
+                                            </div>
+                                            <div class="lesson-title">{{ video.title_ar }}</div>
+                                            <div class="lesson-duration">15:00</div>
+                                            <a href="{% url 'core:video_detail' video.id %}" class="btn btn-sm btn-primary ms-2">
+                                                <i class="fas fa-play me-1"></i> مشاهدة
+                                            </a>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0 text-center">لا توجد دروس متاحة لهذا الكورس حالياً.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleAccordion(id) {
+        const content = document.getElementById(id);
+        const header = content.previousElementSibling;
+
+        // Toggle active class on header
+        header.classList.toggle('active');
+
+        // Toggle active class on content
+        content.classList.toggle('active');
+    }
+
+    // Open first accordion by default
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstAccordion = document.querySelector('.accordion-content');
+        if (firstAccordion) {
+            const firstHeader = firstAccordion.previousElementSibling;
+            firstHeader.classList.add('active');
+            firstAccordion.classList.add('active');
+        }
+    });
+</script>
+{% endblock %}

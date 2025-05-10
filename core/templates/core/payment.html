@@ -1,0 +1,204 @@
+{% extends 'core/base.html' %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} - منصة التعليم{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <div class="text-center">
+            <h1 class="display-4 fw-bold mb-4">شراء الحصص</h1>
+            <p class="lead mb-0">اختر الباقة المناسبة لك واستمتع بتجربة تعليمية فريدة</p>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <!-- Payment Benefits Section -->
+    <div class="row mb-5">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold mb-3">مميزات <span style="color: var(--secondary-color);">الاشتراك</span></h2>
+            <p class="lead text-muted">استمتع بتجربة تعليمية متكاملة مع أفضل المدرسين</p>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card hover-card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle bg-primary text-white mx-auto mb-4">
+                        <i class="fas fa-video fa-2x"></i>
+                    </div>
+                    <h3 class="h4 mb-3">فيديوهات تعليمية</h3>
+                    <p class="text-muted mb-0">شاهد دروسك بجودة عالية مع إمكانية التحكم في سرعة العرض</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card hover-card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle bg-primary text-white mx-auto mb-4">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                    <h3 class="h4 mb-3">وصول غير محدود</h3>
+                    <p class="text-muted mb-0">استمتع بالوصول إلى المحتوى التعليمي في أي وقت ومن أي مكان</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card hover-card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle bg-primary text-white mx-auto mb-4">
+                        <i class="fas fa-graduation-cap fa-2x"></i>
+                    </div>
+                    <h3 class="h4 mb-3">تعلم فعال</h3>
+                    <p class="text-muted mb-0">تعلم بطريقة فعالة مع أفضل المدرسين وأحدث طرق التدريس</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Methods Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-primary text-white p-4">
+                    <h3 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i> طرق الدفع المتاحة</h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        {% if payment_methods %}
+                            {% for method in payment_methods %}
+                                <div class="col-md-6 mb-4">
+                                    <div class="card hover-card h-100 border-0 shadow-sm">
+                                        <div class="card-body p-4">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="payment-icon me-3">
+                                                    <i class="{{ method.icon }} fa-2x text-primary"></i>
+                                                </div>
+                                                <h4 class="mb-0">{{ method.name_ar }}</h4>
+                                            </div>
+                                            <div class="payment-details">
+                                                <p class="mb-2"><strong>رقم الهاتف:</strong> <span class="text-primary">{{ method.phone_number }}</span></p>
+                                                {% if method.description %}
+                                                    <p class="text-muted small mb-0">{{ method.description }}</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0">
+                                    <p class="mb-0 text-center">لا توجد طرق دفع متاحة حالياً. يرجى التواصل مع الإدارة.</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Packages Section -->
+    <div class="row">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold mb-3">باقات <span style="color: var(--secondary-color);">الاشتراك</span></h2>
+            <p class="lead text-muted">اختر الباقة المناسبة لاحتياجاتك</p>
+        </div>
+        
+        {% if packages %}
+            {% for package in packages %}
+                <div class="col-md-4 mb-4">
+                    <div class="card package-card h-100 border-0 shadow-lg">
+                        <div class="card-header bg-primary text-white text-center p-4">
+                            <h3 class="mb-0">{{ package.name_ar }}</h3>
+                        </div>
+                        <div class="card-body p-4 text-center">
+                            <div class="package-price mb-4">
+                                <h2 class="display-4 fw-bold text-primary">{{ package.price }} <small>جنيه</small></h2>
+                                <p class="text-muted">{{ package.number_of_codes }} كود وصول</p>
+                            </div>
+                            
+                            {% if package.description %}
+                                <div class="package-features mb-4">
+                                    <p>{{ package.description }}</p>
+                                </div>
+                            {% endif %}
+                            
+                            <a href="#" class="btn btn-primary btn-lg w-100 fw-bold">
+                                <i class="fas fa-shopping-cart me-2"></i> اشترك الآن
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <p class="mb-0 text-center">لا توجد باقات متاحة حالياً. يرجى التواصل مع الإدارة.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Payment Instructions -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-primary text-white p-4">
+                    <h3 class="mb-0"><i class="fas fa-info-circle me-2"></i> تعليمات الدفع</h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4 class="mb-3">خطوات الدفع:</h4>
+                            <ol class="mb-4">
+                                <li class="mb-2">اختر الباقة المناسبة لك</li>
+                                <li class="mb-2">قم بتحويل المبلغ إلى رقم الهاتف المذكور</li>
+                                <li class="mb-2">احتفظ برقم العملية</li>
+                                <li class="mb-2">تواصل مع الإدارة عبر الواتساب على نفس الرقم</li>
+                                <li class="mb-2">سيتم تفعيل الباقة خلال 24 ساعة</li>
+                            </ol>
+                        </div>
+                        <div class="col-md-6">
+                            <h4 class="mb-3">ملاحظات هامة:</h4>
+                            <ul class="mb-0">
+                                <li class="mb-2">يرجى التأكد من إدخال رقم الهاتف الصحيح</li>
+                                <li class="mb-2">تأكد من إرسال صورة من إيصال الدفع</li>
+                                <li class="mb-2">الأكواد صالحة لمدة 30 يوم من تاريخ الاستخدام</li>
+                                <li class="mb-2">للاستفسارات، يرجى التواصل مع الإدارة</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .package-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .package-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    }
+    
+    .payment-icon {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+{% endblock %}

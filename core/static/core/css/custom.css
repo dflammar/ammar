@@ -1,0 +1,531 @@
+/* Assignment Icons */
+.assignment-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+}
+
+/* Hover Card Effect */
+.hover-card {
+    transition: all 0.3s ease;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+
+/* Profile Page Styles */
+.profile-header {
+    background: linear-gradient(135deg, #5c6bc0, #3949ab);
+    padding: 30px 0;
+    color: white;
+    border-radius: 0 0 20px 20px;
+}
+
+.profile-image {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid white;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.profile-stats {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    margin-top: -50px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 10px;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #3949ab;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #666;
+}
+
+/* Course Completion Message */
+.completion-message {
+    text-align: center;
+    padding: 30px;
+    background: linear-gradient(135deg, #66bb6a, #43a047);
+    color: white;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.completion-icon {
+    font-size: 60px;
+    margin-bottom: 20px;
+}
+
+.completion-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.completion-text {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+/* Teacher Partitions */
+.teacher-section {
+    background: #f5f7fa;
+    padding: 30px 0;
+    border-radius: 10px;
+}
+
+.teacher-card {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.teacher-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.teacher-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.teacher-info {
+    padding: 20px;
+}
+
+.teacher-name {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.teacher-subject {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.teacher-rating {
+    color: #ffc107;
+    margin-bottom: 15px;
+}
+
+/* Dark Mode Styles */
+[data-bs-theme="dark"] {
+    --bs-body-bg: #121212;
+    --bs-body-color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] .card {
+    background-color: #1e1e1e;
+    border-color: #333;
+}
+
+[data-bs-theme="dark"] .bg-white {
+    background-color: #1e1e1e !important;
+}
+
+[data-bs-theme="dark"] .text-muted {
+    color: #adb5bd !important;
+}
+
+[data-bs-theme="dark"] .border-light {
+    border-color: #333 !important;
+}
+
+/* Admin Dashboard Styles */
+.admin-dashboard {
+    padding: 30px 0;
+}
+
+.dashboard-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.dashboard-icon {
+    font-size: 40px;
+    margin-bottom: 15px;
+    color: #3949ab;
+}
+
+.dashboard-value {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.dashboard-label {
+    font-size: 14px;
+    color: #666;
+}
+
+.dashboard-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.quick-action-card {
+    flex: 1;
+    min-width: 200px;
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.quick-action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.quick-action-icon {
+    font-size: 30px;
+    margin-bottom: 15px;
+    color: #3949ab;
+}
+
+.quick-action-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.quick-action-description {
+    font-size: 14px;
+    color: #666;
+}
+
+/* Wave background */
+.wave-bg {
+    background-color: var(--primary-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.wave-bg::before,
+.wave-bg::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 100px;
+    background-size: 100% 100px;
+    background-repeat: no-repeat;
+}
+
+/* Animated waves */
+.wave {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" opacity=".25" fill="%23FFFFFF"></path><path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" opacity=".5" fill="%23FFFFFF"></path><path d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z" fill="%23FFFFFF"></path></svg>');
+    background-size: 100% 100px;
+    background-repeat: no-repeat;
+    animation: wave-animation 10s linear infinite;
+}
+
+.wave.wave1 {
+    animation: wave-animation 20s linear infinite;
+    opacity: 1;
+    animation-delay: 0s;
+    bottom: 0;
+}
+
+.wave.wave2 {
+    animation: wave-animation-reverse 15s linear infinite;
+    opacity: 0.5;
+    animation-delay: -5s;
+    bottom: 10px;
+}
+
+.wave.wave3 {
+    animation: wave-animation 30s linear infinite;
+    opacity: 0.2;
+    animation-delay: -2s;
+    bottom: 15px;
+}
+
+.wave.wave4 {
+    animation: wave-animation-reverse 25s linear infinite;
+    opacity: 0.7;
+    animation-delay: -5s;
+    bottom: 20px;
+}
+
+@keyframes wave-animation {
+    0% {
+        background-position-x: 0;
+    }
+    100% {
+        background-position-x: 1000px;
+    }
+}
+
+@keyframes wave-animation-reverse {
+    0% {
+        background-position-x: 1000px;
+    }
+    100% {
+        background-position-x: 0;
+    }
+}
+
+/* Feature Cards */
+.feature-card {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    color: white;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.feature-icon {
+    width: 80px;
+    height: 80px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 30px;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.feature-card:hover .feature-icon {
+    transform: scale(1.1) rotate(5deg);
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    /* General responsive adjustments */
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    /* Navigation adjustments */
+    .navbar-nav {
+        margin-top: 15px;
+    }
+
+    .search-box {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .auth-button {
+        width: 100%;
+        text-align: center;
+    }
+    .hero-section {
+        padding: 50px 0 120px;
+    }
+
+    .feature-card {
+        margin-bottom: 20px;
+    }
+
+    .dashboard-card {
+        margin-bottom: 20px;
+    }
+
+    .quick-action-card {
+        min-width: 100%;
+        margin-bottom: 15px;
+    }
+
+    .grade-card {
+        margin-bottom: 20px;
+    }
+
+    .course-header {
+        padding: 30px 0;
+    }
+
+    .course-title {
+        font-size: 1.8rem;
+    }
+
+    .course-meta {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .course-meta-item {
+        margin-bottom: 10px;
+    }
+
+    .footer {
+        padding: 30px 0 20px;
+    }
+
+    .wave {
+        height: 50px;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 576px) {
+    .course-header {
+        padding: 20px 0;
+    }
+
+    .course-title {
+        font-size: 1.5rem;
+    }
+
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+
+    .footer h4 {
+        font-size: 1.2rem;
+    }
+
+    .social-icons a {
+        width: 35px;
+        height: 35px;
+    }
+
+    .grade-card .grade-content h3 {
+        font-size: 1.2rem;
+    }
+
+    .dashboard-value {
+        font-size: 22px;
+    }
+
+    .dashboard-icon {
+        font-size: 30px;
+    }
+}
+
+/* Enhanced Footer Styles */
+.footer {
+    margin-top: auto;
+    padding: 50px 0 20px;
+    background-color: var(--primary-color);
+    color: var(--footer-text);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.footer-links li {
+    transition: all 0.3s ease;
+}
+
+.footer-links li:hover {
+    transform: translateX(-5px);
+}
+
+.footer .social-icons {
+    display: flex;
+}
+
+.footer .social-icons a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 18px;
+    transition: all 0.3s;
+}
+
+.footer .social-icons a:hover {
+    transform: translateY(-5px);
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.footer h4 {
+    position: relative;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.footer h4::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 50px;
+    height: 2px;
+    background-color: var(--accent-color);
+}

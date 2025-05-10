@@ -1,0 +1,141 @@
+{% extends 'core/base.html' %}
+{% load i18n %}
+
+{% block title %}{{ title }} - منصة التعليم{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'core:admin_dashboard' %}">لوحة التحكم</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ title }}</li>
+                </ol>
+            </nav>
+            
+            <div class="gradient-bg p-4 rounded-3 text-center mb-4">
+                <h1 class="display-5 fw-bold">{% trans "أكواد الوصول المنشأة" %}</h1>
+                <p class="lead">تم إنشاء {{ codes|length }} كود وصول بنجاح</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">قائمة الأكواد</h5>
+                    <div>
+                        <button id="copyAllCodes" class="btn btn-sm btn-primary me-2">
+                            <i class="fas fa-copy me-1"></i> نسخ جميع الأكواد
+                        </button>
+                        <a href="{% url 'core:admin_dashboard' %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-right me-1"></i> العودة للوحة التحكم
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if codes %}
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            يمكنك نسخ جميع الأكواد بالضغط على زر "نسخ جميع الأكواد" أو نسخ كل كود على حدة بالضغط على أيقونة النسخ بجانب الكود.
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">كود الوصول</th>
+                                        <th scope="col">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for code in codes %}
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td><code>{{ code }}</code></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary copy-code" data-code="{{ code }}">
+                                                    <i class="fas fa-copy"></i> نسخ
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h5 class="mb-3">نسخ جميع الأكواد كنص</h5>
+                            <div class="form-group">
+                                <textarea id="allCodes" class="form-control" rows="10" readonly>{% for code in codes %}{{ code }}
+{% endfor %}</textarea>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="fas fa-exclamation-circle fa-4x text-warning"></i>
+                            </div>
+                            <h4 class="text-muted mb-3">لا توجد أكواد منشأة</h4>
+                            <p class="text-muted mb-4">لم يتم العثور على أي أكواد في الجلسة الحالية</p>
+                            <a href="{% url 'core:admin_dashboard' %}" class="btn btn-primary">
+                                <i class="fas fa-arrow-right me-2"></i> العودة للوحة التحكم
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Copy individual code
+        const copyButtons = document.querySelectorAll('.copy-code');
+        copyButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const code = this.getAttribute('data-code');
+                navigator.clipboard.writeText(code).then(() => {
+                    // Change button text temporarily
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-check"></i> تم النسخ';
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('btn-success');
+                    
+                    setTimeout(() => {
+                        this.innerHTML = originalHTML;
+                        this.classList.remove('btn-success');
+                        this.classList.add('btn-outline-primary');
+                    }, 2000);
+                });
+            });
+        });
+        
+        // Copy all codes
+        const copyAllButton = document.getElementById('copyAllCodes');
+        if (copyAllButton) {
+            copyAllButton.addEventListener('click', function() {
+                const allCodesTextarea = document.getElementById('allCodes');
+                allCodesTextarea.select();
+                navigator.clipboard.writeText(allCodesTextarea.value).then(() => {
+                    // Change button text temporarily
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-check"></i> تم النسخ';
+                    this.classList.remove('btn-primary');
+                    this.classList.add('btn-success');
+                    
+                    setTimeout(() => {
+                        this.innerHTML = originalHTML;
+                        this.classList.remove('btn-success');
+                        this.classList.add('btn-primary');
+                    }, 2000);
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white py-3 border-0">
+                    <h3 class="mb-0 fw-bold">إنشاء واجب أو امتحان جديد</h3>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if messages %}
+                        <div class="mb-4">
+                            {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <label for="id_assignment_type" class="form-label">نوع المهمة *</label>
+                            <select name="assignment_type" id="id_assignment_type" class="form-select" required>
+                                <option value="">-- اختر نوع المهمة --</option>
+                                {% for value, label in assignment_types %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">اختر نوع المهمة (واجب منزلي، امتحان، إلخ)</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="id_title" class="form-label">العنوان (بالإنجليزية)</label>
+                                <input type="text" name="title" id="id_title" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="id_title_ar" class="form-label">العنوان (بالعربية) *</label>
+                                <input type="text" name="title_ar" id="id_title_ar" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_description" class="form-label">الوصف</label>
+                            <textarea name="description" id="id_description" rows="3" class="form-control"></textarea>
+                            <div class="form-text">وصف مختصر للواجب أو الامتحان</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_course" class="form-label">الكورس *</label>
+                            <select name="course" id="id_course" class="form-select" required>
+                                <option value="">-- اختر الكورس --</option>
+                                {% for course in courses %}
+                                <option value="{{ course.id }}">{{ course.grade.name_ar }} - {{ course.name_ar }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_lesson" class="form-label">الدرس (اختياري)</label>
+                            <select name="lesson" id="id_lesson" class="form-select">
+                                <option value="">-- اختر الدرس --</option>
+                                <!-- سيتم ملء هذا القائمة بشكل ديناميكي عند اختيار الكورس -->
+                            </select>
+                            <div class="form-text">اترك هذا الحقل فارغًا إذا كان الواجب أو الامتحان للكورس بأكمله</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_google_sheet_url" class="form-label">رابط Google Sheets</label>
+                            <input type="url" name="google_sheet_url" id="id_google_sheet_url" class="form-control">
+                            <div class="form-text">رابط ملف Google Sheets للواجب أو الامتحان</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_google_form_url" class="form-label">رابط Google Forms</label>
+                            <input type="url" name="google_form_url" id="id_google_form_url" class="form-control">
+                            <div class="form-text">رابط نموذج Google Forms للواجب أو الامتحان</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_due_date" class="form-label">تاريخ الاستحقاق</label>
+                            <input type="datetime-local" name="due_date" id="id_due_date" class="form-control">
+                            <div class="form-text">تاريخ ووقت استحقاق الواجب أو الامتحان (اختياري)</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="javascript:history.back()" class="btn btn-outline-secondary me-md-2">إلغاء</a>
+                            <button type="submit" class="btn btn-primary">إنشاء</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const courseSelect = document.getElementById('id_course');
+        const lessonSelect = document.getElementById('id_lesson');
+        
+        // Function to load lessons for selected course
+        function loadLessons() {
+            const courseId = courseSelect.value;
+            
+            // Clear current options
+            lessonSelect.innerHTML = '<option value="">-- اختر الدرس --</option>';
+            
+            if (!courseId) return;
+            
+            // Fetch lessons for this course
+            fetch(`/api/courses/${courseId}/lessons/`)
+                .then(response => response.json())
+                .then(lessons => {
+                    lessons.forEach(lesson => {
+                        const option = document.createElement('option');
+                        option.value = lesson.id;
+                        option.textContent = lesson.title_ar;
+                        lessonSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading lessons:', error));
+        }
+        
+        // Load lessons when course changes
+        courseSelect.addEventListener('change', loadLessons);
+    });
+</script>
+{% endblock %}
