@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مشغل منصة التعليم</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        h1 {
+            color: #0a7c9e;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        h2 {
+            color: #0a7c9e;
+            margin-bottom: 15px;
+        }
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #0a7c9e;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            cursor: pointer;
+            border: none;
+            text-align: center;
+            min-width: 200px;
+        }
+        .btn:hover {
+            background-color: #006d87;
+        }
+        .btn-secondary {
+            background-color: #ff5252;
+        }
+        .btn-secondary:hover {
+            background-color: #e04848;
+        }
+        .file-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .file-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .file-list i {
+            margin-right: 10px;
+            color: #0a7c9e;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #777;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>مشغل منصة التعليم</h1>
+        
+        <div class="section">
+            <h2>تشغيل الخادم</h2>
+            <p>اختر أحد الخيارات التالية لتشغيل خادم Django:</p>
+            <div class="btn-group">
+                <a href="RUN_THIS.bat" class="btn">تشغيل الخادم (المنفذ 8000)</a>
+                <a href="run_server.bat" class="btn">تشغيل الخادم (المنفذ 8080)</a>
+                <a href="fix_and_run.bat" class="btn btn-secondary">إصلاح وتشغيل</a>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>فتح المشروع</h2>
+            <p>اختر أحد الخيارات التالية لفتح ملفات المشروع:</p>
+            <div class="btn-group">
+                <a href="open_folder.bat" class="btn">فتح مجلد المشروع</a>
+                <a href="open_project.bat" class="btn">فتح المشروع (خيارات متعددة)</a>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>روابط مفيدة</h2>
+            <p>استخدم الروابط التالية للوصول إلى المنصة بعد تشغيل الخادم:</p>
+            <div class="btn-group">
+                <a href="http://127.0.0.1:8000/" target="_blank" class="btn">فتح المنصة (المنفذ 8000)</a>
+                <a href="http://127.0.0.1:8080/" target="_blank" class="btn">فتح المنصة (المنفذ 8080)</a>
+                <a href="http://127.0.0.1:9000/" target="_blank" class="btn">فتح المنصة (المنفذ 9000)</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>تم تطويره بواسطة: عمار محمود | Telegram: @d_f_l</p>
+        </div>
+    </div>
+</body>
+</html>
